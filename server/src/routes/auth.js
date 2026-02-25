@@ -7,6 +7,13 @@ import { authenticate } from '../middleware/auth.js';
 const router = express.Router();
 const prisma = new PrismaClient();
 
+const COOKIE_OPTS = {
+  httpOnly: true,
+  sameSite: 'none',
+  secure: true,
+  maxAge: 7 * 24 * 60 * 60 * 1000
+};
+
 // Register
 router.post('/register', async (req, res) => {
   try {
@@ -28,19 +35,20 @@ router.post('/register', async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
     const initials = `${firstName[0]}${lastName[0]}`.toUpperCase();
 
-const user = await prisma.user.create({
-   data : {
-    email,
-    password: hashedPassword,
-    firstName,
-    lastName,
-    initials,
-    mathExp
-  }
-});
+    const user = await prisma.user.create({
+      data: {
+        email,
+        password: hashedPassword,
+        firstName,
+        lastName,
+        initials,
+        mathExp
+      }
+    });
 
     const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '7d' });
 
+    res.cookie('token', token, COOKIE_OPTS);
     res.json({
       token,
       user: {
@@ -62,19 +70,17 @@ const user = await prisma.user.create({
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
-
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
       return res.status(400).json({ error: 'Invalid credentials' });
     }
-
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) {
       return res.status(400).json({ error: 'Invalid credentials' });
     }
-
     const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '7d' });
 
+    res.cookie('token', token, COOKIE_OPTS);
     res.json({
       token,
       user: {
@@ -91,6 +97,12 @@ router.post('/login', async (req, res) => {
   }
 });
 
+// Logout
+router.post('/logout', (req, res) => {
+  res.clearCookie('token', { sameSite: 'none', secure: true });
+  res.json({ message: 'Logged out' });
+});
+
 // Get current user
 router.get('/me', authenticate, async (req, res) => {
   try {
@@ -105,8 +117,7 @@ router.get('/me', authenticate, async (req, res) => {
         mathExp: true
       }
     });
-
-    res.json(user);
+    res.json({ user });
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch user' });
   }
