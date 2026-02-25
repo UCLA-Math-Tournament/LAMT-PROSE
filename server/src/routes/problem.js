@@ -160,7 +160,7 @@ router.put('/:id', authenticate, async (req, res) => {
 
     const problem = await prisma.problem.update({
       where: { id: req.params.id },
-       { latex, topics, quality, stage },
+       data: { latex, topics, quality, stage },
       include: {
         author: {
           select: {
