@@ -105,7 +105,7 @@ router.post('/', authenticate, async (req, res) => {
     // Update solve count
     await prisma.problem.update({
       where: { id: problemId },
-       {
+      data: {
         solveCount: { increment: 1 }
       }
     });
@@ -158,7 +158,7 @@ router.put('/:id/resolve', authenticate, async (req, res) => {
 
     const updated = await prisma.feedback.update({
       where: { id: req.params.id },
-       { resolved: true }
+      data: { resolved: true }
     });
 
     res.json(updated);
