@@ -28,7 +28,6 @@ model Problem {
   authorId    String
   latex       String   @db.Text
   solution    String   @db.Text @default("")
-  writerNotes String   @db.Text @default("")
   topics      String[]
   quality     String
   stage       String   @default("Idea")
