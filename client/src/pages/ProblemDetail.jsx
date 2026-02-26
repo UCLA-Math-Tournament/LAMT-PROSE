@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Edit, Clock, User } from 'lucide-react';
+import { Edit, Clock, User, Trash2 } from 'lucide-react';
 import api from '../utils/api';
 import Layout from '../components/Layout';
 import KatexRenderer from '../components/KatexRenderer';
-
 const ProblemDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -14,25 +13,28 @@ const ProblemDetail = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [editedLatex, setEditedLatex] = useState('');
   const [editedSolution, setEditedSolution] = useState('');
+  const [editedAnswer, setEditedAnswer] = useState('');
+  const [editedNotes, setEditedNotes] = useState('');
   const [editedTopics, setEditedTopics] = useState([]);
   const [editedQuality, setEditedQuality] = useState(5);
   const [editedStage, setEditedStage] = useState('');
   const [message, setMessage] = useState('');
-
   useEffect(() => {
     fetchProblem();
   }, [id]);
-
   const fetchProblem = async () => {
     try {
       const response = await api.get(`/problems/${id}`);
-      setProblem(response.data);
-      setFeedbacks(response.data.feedbacks || []);
-      setEditedLatex(response.data.latex);
-      setEditedSolution(response.data.solution || '');
-      setEditedTopics(response.data.topics);
-      setEditedQuality(parseInt(response.data.quality));
-      setEditedStage(response.data.stage);
+      const data = response.data;
+      setProblem(data);
+      setFeedbacks(data.feedbacks || []);
+      setEditedLatex(data.latex);
+      setEditedSolution(data.solution || '');
+      setEditedAnswer(data.answer || '');
+      setEditedNotes(data.notes || '');
+      setEditedTopics(data.topics);
+      setEditedQuality(parseInt(data.quality));
+      setEditedStage(data.stage);
     } catch (error) {
       console.error('Failed to fetch problem:', error);
       setMessage('Failed to load problem');
@@ -40,12 +42,13 @@ const ProblemDetail = () => {
       setLoading(false);
     }
   };
-
   const handleSave = async () => {
     try {
       await api.put(`/problems/${id}`, {
         latex: editedLatex,
         solution: editedSolution,
+        answer: editedAnswer,
+        notes: editedNotes,
         topics: editedTopics,
         quality: String(editedQuality),
         stage: editedStage
@@ -57,7 +60,15 @@ const ProblemDetail = () => {
       setMessage('Failed to update problem');
     }
   };
-
+  const handleDelete = async () => {
+    if (!window.confirm('Are you sure you want to delete this problem?')) return;
+    try {
+      await api.delete(`/problems/${id}`);
+      navigate('/inventory');
+    } catch (error) {
+      setMessage('Failed to delete problem');
+    }
+  };
   const handleTopicToggle = (topic) => {
     setEditedTopics(prev =>
       prev.includes(topic)
@@ -65,10 +76,8 @@ const ProblemDetail = () => {
         : [...prev, topic]
     );
   };
-
   const topicOptions = ['Algebra', 'Geometry', 'Combinatorics', 'Number Theory'];
   const stageOptions = ['Idea', 'Endorsed', 'On Test', 'Published', 'Needs Review'];
-
   if (loading) {
     return (
       <Layout>
@@ -78,7 +87,6 @@ const ProblemDetail = () => {
       </Layout>
     );
   }
-
   if (!problem) {
     return (
       <Layout>
@@ -94,7 +102,7 @@ const ProblemDetail = () => {
       </Layout>
     );
   }
-
+  const canEdit = problem._isAuthor || problem._isAdmin;
   return (
     <Layout>
       <div className="max-w-6xl mx-auto">
@@ -106,15 +114,25 @@ const ProblemDetail = () => {
               by {problem.author.firstName} {problem.author.lastName} ({problem.author.initials})
             </p>
           </div>
-          <button
-            onClick={() => setIsEditing(!isEditing)}
-            className="flex items-center gap-2 px-4 py-2 bg-ucla-blue text-white rounded-lg hover:bg-ucla-dark-blue"
-          >
-            <Edit size={18} />
-            {isEditing ? 'Cancel Edit' : 'Edit'}
-          </button>
+          {canEdit && (
+            <div className="flex gap-2">
+              <button
+                onClick={() => setIsEditing(!isEditing)}
+                className="flex items-center gap-2 px-4 py-2 bg-ucla-blue text-white rounded-lg hover:bg-ucla-dark-blue"
+              >
+                <Edit size={18} />
+                {isEditing ? 'Cancel Edit' : 'Edit'}
+              </button>
+              <button
+                onClick={handleDelete}
+                className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+              >
+                <Trash2 size={18} />
+                Delete
+              </button>
+            </div>
+          )}
         </div>
-
         {message && (
           <div className={`mb-6 px-4 py-3 rounded ${
             message.includes('success') ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'
@@ -122,7 +140,6 @@ const ProblemDetail = () => {
             {message}
           </div>
         )}
-
         {/* Problem Content */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
           <div className="flex justify-between items-center mb-4">
@@ -138,7 +155,6 @@ const ProblemDetail = () => {
               </div>
             </div>
           </div>
-
           {isEditing ? (
             <div className="space-y-4">
               <div>
@@ -150,9 +166,8 @@ const ProblemDetail = () => {
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg font-mono text-sm"
                 />
               </div>
-
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Solution (LaTeX)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Writer's Solution (LaTeX)</label>
                 <textarea
                   value={editedSolution}
                   onChange={(e) => setEditedSolution(e.target.value)}
@@ -160,7 +175,26 @@ const ProblemDetail = () => {
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg font-mono text-sm"
                 />
               </div>
-
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Final Answer</label>
+                <input
+                  type="text"
+                  value={editedAnswer}
+                  onChange={(e) => setEditedAnswer(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm"
+                  placeholder="Numerical answer or simple string..."
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Notes (Private)</label>
+                <textarea
+                  value={editedNotes}
+                  onChange={(e) => setEditedNotes(e.target.value)}
+                  rows={4}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm"
+                  placeholder="Notes, source, or comments..."
+                />
+              </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Topics</label>
                 <div className="flex gap-2 flex-wrap">
@@ -180,7 +214,6 @@ const ProblemDetail = () => {
                   ))}
                 </div>
               </div>
-
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Difficulty: <span className="font-bold text-ucla-blue">{editedQuality}/10</span>
@@ -194,7 +227,6 @@ const ProblemDetail = () => {
                   className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-ucla-blue"
                 />
               </div>
-
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Stage</label>
                 <select
@@ -207,7 +239,6 @@ const ProblemDetail = () => {
                   ))}
                 </select>
               </div>
-
               <button
                 onClick={handleSave}
                 className="w-full bg-ucla-blue text-white py-2 rounded-lg hover:bg-ucla-dark-blue"
@@ -225,7 +256,7 @@ const ProblemDetail = () => {
                   </span>
                 ))}
               </div>
-              <div className="mt-4 flex gap-4 text-sm text-gray-600">
+              <div className="mt-4 flex gap-4 text-sm text-gray-600 items-center">
                 <span>Quality: {problem.quality}/10</span>
                 <span className={`px-2 py-1 text-xs rounded ${
                   problem.stage === 'On Test' ? 'bg-blue-100 text-blue-800' :
@@ -236,27 +267,60 @@ const ProblemDetail = () => {
                 }`}>
                   {problem.stage}
                 </span>
+                {problem.endorsements > 0 && (
+                  <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded font-bold">
+                    ★ {problem.endorsements} Endorsed
+                  </span>
+                )}
               </div>
             </div>
           )}
         </div>
-
-        {/* Writer's Solution */}
-        {problem.solution && !isEditing && (
-          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-            <h2 className="text-xl font-semibold mb-4">Writer's Solution</h2>
-            <div className="prose max-w-none">
-              <KatexRenderer latex={problem.solution} displayMode />
+        {/* Answer and Solution Section */}
+        {!isEditing && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <h2 className="text-xl font-semibold mb-4">Final Answer</h2>
+              {problem.answer ? (
+                <div className="text-2xl font-mono text-ucla-blue bg-blue-50 p-4 rounded-lg text-center">
+                  {problem.answer}
+                </div>
+              ) : (
+                <p className="text-gray-500 italic">No answer provided</p>
+              )}
+              {!problem._isAdmin && problem.answer === undefined && (
+                <p className="text-xs text-red-500 mt-2">Visible only to admins</p>
+              )}
+            </div>
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <h2 className="text-xl font-semibold mb-4">Writer's Solution</h2>
+              {problem.solution ? (
+                <div className="prose max-w-none text-sm">
+                  <KatexRenderer latex={problem.solution} displayMode />
+                </div>
+              ) : (
+                <p className="text-gray-500 italic">No solution provided</p>
+              )}
             </div>
           </div>
         )}
-
+        {/* Notes (Admin/Author only) */}
+        {!isEditing && (problem.notes || problem._isAdmin || problem._isAuthor) && (
+          <div className="bg-white border-l-4 border-yellow-400 rounded-r-lg shadow-md p-6 mb-6">
+            <h2 className="text-xl font-semibold mb-2">Private Notes</h2>
+            <p className="text-xs text-yellow-700 mb-4 font-medium uppercase tracking-wider">Visible only to author and admins</p>
+            {problem.notes ? (
+              <p className="text-gray-700 whitespace-pre-wrap">{problem.notes}</p>
+            ) : (
+              <p className="text-gray-500 italic">No notes added</p>
+            )}
+          </div>
+        )}
         {/* Feedback Section */}
         <div className="bg-white rounded-lg shadow-md p-6">
           <h2 className="text-xl font-semibold mb-4">
             Feedback ({feedbacks.length} reviews)
           </h2>
-          
           {feedbacks.length === 0 ? (
             <p className="text-gray-500 text-center py-8">No feedback yet</p>
           ) : (
@@ -274,11 +338,18 @@ const ProblemDetail = () => {
                         {fb.timeSpent && <span> · {Math.floor(fb.timeSpent / 60)}:{(fb.timeSpent % 60).toString().padStart(2, '0')}</span>}
                       </p>
                     </div>
-                    {fb.resolved && (
-                      <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded">
-                        Resolved
-                      </span>
-                    )}
+                    <div className="flex gap-2">
+                      {fb.isEndorsement && (
+                        <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded font-bold">
+                          Endorsement
+                        </span>
+                      )}
+                      {fb.resolved && (
+                        <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded">
+                          Resolved
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <p className="text-gray-700 mt-2 whitespace-pre-wrap">{fb.feedback}</p>
                 </div>
@@ -290,5 +361,4 @@ const ProblemDetail = () => {
     </Layout>
   );
 };
-
 export default ProblemDetail;
