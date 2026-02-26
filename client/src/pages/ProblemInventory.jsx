@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react'; // Force rebuild
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
- LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ReferenceLine, ResponsiveContainer
+import { 
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ReferenceLine, ResponsiveContainer 
 } from 'recharts';
+import { Check, X, Star } from 'lucide-react';
 import api from '../utils/api';
 import Layout from '../components/Layout';
-
 const ProblemInventory = () => {
   const navigate = useNavigate();
   const [problems, setProblems] = useState([]);
@@ -14,11 +14,9 @@ const ProblemInventory = () => {
   const [stageFilter, setStageFilter] = useState('all');
   const [topicFilter, setTopicFilter] = useState('all');
   const [loading, setLoading] = useState(true);
-
   useEffect(() => {
     fetchData();
   }, []);
-
   const fetchData = async () => {
     try {
       const [problemsRes, progressRes] = await Promise.all([
@@ -33,20 +31,17 @@ const ProblemInventory = () => {
       setLoading(false);
     }
   };
-
   const totalProblems = problems.length;
   const progressPercent = Math.min((totalProblems / 200) * 100, 100);
-
   const filtered = problems.filter(p => {
-    const matchesSearch =
-      search === '' ||
+    const matchesSearch = 
+      search === '' || 
       p.id.toLowerCase().includes(search.toLowerCase()) ||
       p.latex.toLowerCase().includes(search.toLowerCase());
     const matchesStage = stageFilter === 'all' || p.stage === stageFilter;
     const matchesTopic = topicFilter === 'all' || p.topics.includes(topicFilter);
     return matchesSearch && matchesStage && matchesTopic;
   });
-
   if (loading) {
     return (
       <Layout>
@@ -56,13 +51,11 @@ const ProblemInventory = () => {
       </Layout>
     );
   }
-
   return (
     <Layout>
       <div>
         <h1 className="text-3xl font-bold text-ucla-blue mb-2">Tournament Progress</h1>
         <p className="text-gray-600 mb-6">Tracking progress toward 200 problems</p>
-
         {/* Progress Bar */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
           <div className="flex justify-between mb-2">
@@ -70,13 +63,12 @@ const ProblemInventory = () => {
             <span className="font-bold text-ucla-blue text-xl">{totalProblems} / 200</span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-6">
-            <div
+            <div 
               className="bg-ucla-blue h-6 rounded-full transition-all duration-500"
               style={{ width: `${progressPercent}%` }}
             />
           </div>
         </div>
-
         {/* Chart */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
           <h2 className="text-xl font-semibold mb-4">Cumulative Progress Over Time</h2>
@@ -95,7 +87,6 @@ const ProblemInventory = () => {
             </LineChart>
           </ResponsiveContainer>
         </div>
-
         {/* Filters */}
         <div className="bg-white rounded-lg shadow-md p-4 mb-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -131,17 +122,18 @@ const ProblemInventory = () => {
             </select>
           </div>
         </div>
-
         {/* Table */}
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
-          <table className="w-full">
+          <table className="w-full text-sm">
             <thead className="bg-ucla-blue text-white">
               <tr>
+                <th className="px-4 py-3 text-left">Status</th>
                 <th className="px-4 py-3 text-left">ID</th>
                 <th className="px-4 py-3 text-left">Author</th>
                 <th className="px-4 py-3 text-left">Topics</th>
                 <th className="px-4 py-3 text-left">Stage</th>
                 <th className="px-4 py-3 text-left">Reviews</th>
+                <th className="px-4 py-3 text-left">Endorsed</th>
                 <th className="px-4 py-3 text-left">Created</th>
               </tr>
             </thead>
@@ -152,21 +144,50 @@ const ProblemInventory = () => {
                   className="border-b hover:bg-gray-50 cursor-pointer"
                   onClick={() => navigate(`/problems/${problem.id}`)}
                 >
+                  <td className="px-4 py-3">
+                    {problem.stage === 'Published' || problem.solveCount > 0 ? (
+                      <div className="bg-green-100 text-green-700 p-1 rounded-full w-fit">
+                        <Check size={16} />
+                      </div>
+                    ) : (
+                      <div className="bg-gray-100 text-gray-400 p-1 rounded-full w-fit">
+                        <X size={16} />
+                      </div>
+                    )}
+                  </td>
                   <td className="px-4 py-3 font-medium text-ucla-blue">{problem.id}</td>
                   <td className="px-4 py-3">{problem.author.initials}</td>
                   <td className="px-4 py-3">
                     <div className="flex gap-1 flex-wrap">
                       {problem.topics.map(t => (
-                        <span key={t} className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded">
+                        <span key={t} className="px-2 py-0.5 bg-gray-100 text-gray-700 text-[10px] rounded">
                           {t}
                         </span>
                       ))}
                     </div>
                   </td>
                   <td className="px-4 py-3">
-                    <span className="px-2 py-1 text-xs rounded bg-gray-100">{problem.stage}</span>
+                    <span className={`px-2 py-0.5 text-[10px] rounded ${
+                      problem.stage === 'On Test' ? 'bg-blue-100 text-blue-800' :
+                      problem.stage === 'Endorsed' ? 'bg-yellow-100 text-yellow-800' :
+                      problem.stage === 'Published' ? 'bg-green-100 text-green-800' :
+                      problem.stage === 'Needs Review' ? 'bg-red-100 text-red-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      {problem.stage}
+                    </span>
                   </td>
-                  <td className="px-4 py-3">{problem.solveCount || 0} reviewers</td>
+                  <td className="px-4 py-3">{problem.solveCount || 0}</td>
+                  <td className="px-4 py-3">
+                    {problem.endorsements > 0 ? (
+                      <div className="flex items-center gap-1 text-yellow-600 font-bold">
+                        <Star size={14} fill="#FFD100" />
+                        {problem.endorsements}
+                      </div>
+                    ) : (
+                      <span className="text-gray-300">-</span>
+                    )}
+                  </td>
                   <td className="px-4 py-3">{new Date(problem.createdAt).toLocaleDateString()}</td>
                 </tr>
               ))}
@@ -177,5 +198,4 @@ const ProblemInventory = () => {
     </Layout>
   );
 };
-
 export default ProblemInventory;
