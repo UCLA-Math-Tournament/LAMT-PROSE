@@ -153,7 +153,7 @@ const ProblemInventory = () => {
                 <tr 
                   key={problem.id} 
                   className="border-b hover:bg-gray-50 cursor-pointer"
-                  onClick={() => navigate(`/problems/${problem.id}`)}
+                  onClick={() => navigate(`/problem/${problem.id}`)}
                 >
                   <td className="px-4 py-3">
                     {problem.stage === 'Published' || problem.endorsements >= 3 ? (
