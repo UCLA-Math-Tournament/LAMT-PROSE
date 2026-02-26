@@ -1,12 +1,10 @@
 generator client {
   provider = "prisma-client-js"
 }
-
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
-
 model User {
   id        String   @id @default(uuid())
   email     String   @unique
@@ -18,35 +16,32 @@ model User {
   isAdmin   Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
   problems  Problem[]
   feedbacks Feedback[]
 }
-
 model Problem {
-  id          String   @id
-  authorId    String
-  latex       String   @db.Text
-  solution    String   @db.Text @default("")
-  topics      String[]
-  quality     String
-  stage       String   @default("Idea")
-  solveCount  Int      @default(0)
-  unresolved  Int      @default(0)
-  endorsements Int     @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
+  id           String   @id
+  authorId     String
+  latex        String   @db.Text
+  solution     String   @db.Text @default("")
+  answer       String   @default("")
+  notes        String   @db.Text @default("")
+  topics       String[]
+  quality      String
+  stage        String   @default("Idea")
+  solveCount   Int      @default(0)
+  unresolved   Int      @default(0)
+  endorsements Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
   author    User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
   feedbacks Feedback[]
   tests     Test[]     @relation("ProblemToTest")
-
   @@index([authorId])
   @@index([stage])
   @@index([solveCount])
   @@index([endorsements])
 }
-
 model Feedback {
   id           String   @id @default(uuid())
   problemId    String
@@ -58,15 +53,12 @@ model Feedback {
   isEndorsement Boolean @default(false)
   timeSpent    Int?
   createdAt    DateTime @default(now())
-
-  problem Problem @relation(fields: [problemId], references: [id], onDelete: Cascade)
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-
+  problem  Problem @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   @@index([problemId])
   @@index([userId])
   @@index([needsReview])
 }
-
 model Test {
   id          String   @id @default(uuid())
   competition String
@@ -74,6 +66,5 @@ model Test {
   description String?
   version     String
   createdAt   DateTime @default(now())
-
-  problems Problem[] @relation("ProblemToTest")
+  problems    Problem[] @relation("ProblemToTest")
 }
