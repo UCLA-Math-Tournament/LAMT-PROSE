@@ -339,7 +339,7 @@ const ProblemDetail = () => {
                       </p>
                       <p className="text-sm text-gray-500">
                         {new Date(fb.createdAt).toLocaleDateString()}
-                        {fb.answer && <span> · Answered: <span className="font-mono">{fb.answer}</span>}
+                        {fb.answer && <span> · Answered: <span className="font-mono">{fb.answer}</span></span>}
                       </p>
                     </div>
                     {fb.isEndorsement && (
