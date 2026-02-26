@@ -60,6 +60,7 @@ router.get('/dashboard', authenticate, async (req, res) => {
         topics: true,
         stage: true,
         quality: true,
+        endorsements: true,
         createdAt: true
       }
     });
@@ -72,12 +73,15 @@ router.get('/dashboard', authenticate, async (req, res) => {
     });
 
     const stageCounts = {};
+    let totalEndorsements = 0;
     problems.forEach(p => {
       stageCounts[p.stage] = (stageCounts[p.stage] || 0) + 1;
+      totalEndorsements += p.endorsements || 0;
     });
 
     res.json({
       totalProblems: problems.length,
+      totalEndorsements,
       topicCounts,
       stageCounts
     });
@@ -98,10 +102,8 @@ router.get('/tournament-progress', authenticate, async (req, res) => {
     });
 
     const progressByDate = {};
-
     problems.forEach(p => {
       const date = new Date(p.createdAt).toISOString().split('T')[0];
-
       if (!progressByDate[date]) {
         progressByDate[date] = {
           date,
