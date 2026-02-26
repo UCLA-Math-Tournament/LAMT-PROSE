@@ -90,14 +90,14 @@ const WriteProblem = () => {
             <form onSubmit={handleSubmit} className="space-y-5">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Problem Statement (LaTeX)
+                  Problem Statement
                 </label>
                 <textarea
                   value={latex}
                   onChange={(e) => setLatex(e.target.value)}
                   rows={8}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg font-mono text-sm focus:outline-none focus:border-blue-400"
-                  placeholder="Enter LaTeX code for the problem..."
+                  placeholder="Enter problem text. Use $...$ for inline math, $$...$$ for display math."
                   required
                 />
               </div>
@@ -127,14 +127,14 @@ const WriteProblem = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Writer's Solution (LaTeX) <span className="text-red-500">*</span>
+                  Writer's Solution <span className="text-red-500">*</span>
                 </label>
                 <textarea
                   value={solution}
                   onChange={(e) => setSolution(e.target.value)}
                   rows={6}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg font-mono text-sm focus:outline-none focus:border-blue-400"
-                  placeholder="Enter your full solution in LaTeX..."
+                  placeholder="Enter solution text. Use $...$ for inline math, $$...$$ for display math."
                   required
                 />
               </div>
@@ -228,7 +228,7 @@ const WriteProblem = () => {
               <h2 className="text-xl font-semibold mb-4">Problem Preview</h2>
               <div className="border border-gray-200 rounded-lg p-4 min-h-[200px]">
                 {latex ? (
-                  <KatexRenderer latex={latex} displayMode />
+                  <KatexRenderer latex={latex} />
                 ) : (
                   <p className="text-gray-400 text-center">Problem preview will appear here...</p>
                 )}
@@ -245,7 +245,7 @@ const WriteProblem = () => {
               <h2 className="text-xl font-semibold mb-4">Solution Preview</h2>
               <div className="border border-gray-200 rounded-lg p-4 min-h-[200px]">
                 {solution ? (
-                  <KatexRenderer latex={solution} displayMode />
+                  <KatexRenderer latex={solution} />
                 ) : (
                   <p className="text-gray-400 text-center">Solution preview will appear here...</p>
                 )}
