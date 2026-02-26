@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../utils/AuthContext';
 import { 
   Home, LayoutDashboard, PenTool, List, Trophy, 
-  MessageSquare, FileText, LogOut, Menu, X, Moon, Sun
+  MessageSquare, FileText, LogOut, Menu, X, Moon, Sun, Star
 } from 'lucide-react';
 
 export const useDarkMode = () => {
@@ -36,6 +36,7 @@ const Sidebar = ({ dark, toggleDark }) => {
     { to: '/leaderboard', icon: Trophy, label: 'Leaderboard' },
     { to: '/feedback', icon: MessageSquare, label: 'Give Feedback' },
     { to: '/tests', icon: FileText, label: 'View Tests' },
+        { to: '/questions-to-endorse', icon: Star, label: 'Questions to Endorse' },
   ];
 
   return (
