@@ -20,6 +20,7 @@ const DIFFICULTY_LABELS = {
 const WriteProblem = () => {
   const [latex, setLatex] = useState('');
   const [solution, setSolution] = useState('');
+  const [notes, setNotes] = useState('');
   const [topics, setTopics] = useState([]);
   const [difficulty, setDifficulty] = useState(5);
   const [loading, setLoading] = useState(false);
@@ -38,23 +39,20 @@ const WriteProblem = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     if (topics.length === 0) {
       setMessage('Please select at least one topic');
       return;
     }
-
     setLoading(true);
     setMessage('');
-
     try {
       const response = await api.post('/problems', {
         latex,
         solution,
+        notes,
         topics,
         quality: String(difficulty),
       });
-
       setMessage(`Problem ${response.data.id} created successfully!`);
       setTimeout(() => {
         navigate('/dashboard');
@@ -70,13 +68,11 @@ const WriteProblem = () => {
   return (
     <Layout>
       <div className="max-w-6xl mx-auto">
-        <h1 className="text-3xl font-bold text-ucla-blue mb-8">Write New Problem</h1>
-
+        <h1 className="text-3xl font-bold mb-8" style={{ color: '#2774AE' }}>Write New Problem</h1>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Left column: form */}
           <div className="bg-white rounded-lg shadow-md p-6">
             <h2 className="text-xl font-semibold mb-4">Problem Editor</h2>
-
             <form onSubmit={handleSubmit} className="space-y-5">
               {/* Problem Statement */}
               <div>
@@ -87,12 +83,11 @@ const WriteProblem = () => {
                   value={latex}
                   onChange={(e) => setLatex(e.target.value)}
                   rows={8}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ucla-blue focus:border-transparent font-mono text-sm"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg font-mono text-sm focus:outline-none focus:border-blue-400"
                   placeholder="Enter LaTeX code for the problem..."
                   required
                 />
               </div>
-
               {/* Writer's Solution */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -102,12 +97,24 @@ const WriteProblem = () => {
                   value={solution}
                   onChange={(e) => setSolution(e.target.value)}
                   rows={6}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ucla-blue focus:border-transparent font-mono text-sm"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg font-mono text-sm focus:outline-none focus:border-blue-400"
                   placeholder="Enter your full solution in LaTeX..."
                   required
                 />
               </div>
-
+              {/* Notes */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Notes / Comments
+                </label>
+                <textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  rows={4}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-400"
+                  placeholder="Add any notes, source info, or comments about this problem..."
+                />
+              </div>
               {/* Topics */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -121,20 +128,20 @@ const WriteProblem = () => {
                       onClick={() => handleTopicToggle(topic)}
                       className={`px-4 py-2 rounded-lg transition-colors ${
                         topics.includes(topic)
-                          ? 'bg-ucla-blue text-white'
+                          ? 'text-white'
                           : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                       }`}
+                      style={topics.includes(topic) ? { backgroundColor: '#2774AE' } : {}}
                     >
                       {topic}
                     </button>
                   ))}
                 </div>
               </div>
-
               {/* Difficulty */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Difficulty: <span className="font-bold text-ucla-blue">{difficulty}/10</span>
+                  Difficulty: <span className="font-bold" style={{ color: '#2774AE' }}>{difficulty}/10</span>
                 </label>
                 <input
                   type="range"
@@ -143,25 +150,15 @@ const WriteProblem = () => {
                   step="1"
                   value={difficulty}
                   onChange={(e) => setDifficulty(Number(e.target.value))}
-                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-ucla-blue"
+                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
                 />
                 <div className="flex justify-between text-xs text-gray-400 mt-1">
-                  <span>1</span>
-                  <span>2</span>
-                  <span>3</span>
-                  <span>4</span>
-                  <span>5</span>
-                  <span>6</span>
-                  <span>7</span>
-                  <span>8</span>
-                  <span>9</span>
-                  <span>10</span>
+                  {[1,2,3,4,5,6,7,8,9,10].map(n => <span key={n}>{n}</span>)}
                 </div>
                 <div className="mt-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
                   {DIFFICULTY_LABELS[difficulty]}
                 </div>
               </div>
-
               {message && (
                 <div className={`px-4 py-3 rounded text-sm ${
                   message.includes('successfully')
@@ -171,17 +168,16 @@ const WriteProblem = () => {
                   {message}
                 </div>
               )}
-
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-ucla-blue text-white py-2 rounded-lg hover:bg-ucla-dark-blue transition-colors disabled:opacity-50"
+                className="w-full text-white py-2 rounded-lg transition-colors disabled:opacity-50"
+                style={{ backgroundColor: '#2774AE' }}
               >
                 {loading ? 'Creating...' : 'Submit Problem'}
               </button>
             </form>
           </div>
-
           {/* Right column: preview */}
           <div className="space-y-6">
             <div className="bg-white rounded-lg shadow-md p-6">
@@ -194,7 +190,6 @@ const WriteProblem = () => {
                 )}
               </div>
             </div>
-
             <div className="bg-white rounded-lg shadow-md p-6">
               <h2 className="text-xl font-semibold mb-4">Solution Preview</h2>
               <div className="border border-gray-200 rounded-lg p-4 min-h-[200px]">
@@ -205,6 +200,14 @@ const WriteProblem = () => {
                 )}
               </div>
             </div>
+            {notes && (
+              <div className="bg-white rounded-lg shadow-md p-6">
+                <h2 className="text-xl font-semibold mb-4">Notes Preview</h2>
+                <div className="border border-gray-200 rounded-lg p-4 min-h-[80px] text-sm text-gray-700 whitespace-pre-wrap">
+                  {notes}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
