@@ -5,6 +5,9 @@ import { authenticate } from '../middleware/auth.js';
 const router = express.Router();
 const prisma = new PrismaClient();
 
+const ADMIN_EMAILS = ['arpituppal@ucla.edu'];
+const ADMIN_CODE = 'LAMTADMIN839fhy38fynx389hm09h';
+
 // Create problem
 router.post('/', authenticate, async (req, res) => {
   try {
@@ -20,7 +23,6 @@ router.post('/', authenticate, async (req, res) => {
 
     if (!user) return res.status(404).json({ error: 'User not found' });
 
-    // Task 10: Collective problem numbering with 0001 format
     const totalProblems = await prisma.problem.count();
     const problemId = `${user.initials}${String(totalProblems + 1).padStart(4, '0')}`;
 
@@ -57,17 +59,17 @@ router.post('/', authenticate, async (req, res) => {
 router.get('/', authenticate, async (req, res) => {
   try {
     const { stage, topic, author, search } = req.query;
-    
+
     const currentUser = await prisma.user.findUnique({
       where: { id: req.userId },
-      select: { isAdmin: true }
+      select: { isAdmin: true, email: true }
     });
 
     const where = {};
     if (stage) where.stage = stage;
     if (topic) where.topics = { has: topic };
     if (author) where.authorId = author;
-    
+
     if (search) {
       where.OR = [
         { id: { contains: search, mode: 'insensitive' } },
@@ -92,16 +94,14 @@ router.get('/', authenticate, async (req, res) => {
       orderBy: { createdAt: 'desc' }
     });
 
-    const isAdmin = currentUser?.isAdmin || false;
-
+    const isAdmin = currentUser?.isAdmin || ADMIN_EMAILS.includes(currentUser?.email);
+    
     const result = problems.map(p => {
       const pData = { ...p };
       const isAuthor = p.authorId === req.userId;
-
       if (!isAdmin) delete pData.answer;
-      // Task 6: Admins can see notes. Task 4: Authors can see notes.
       if (!isAdmin && !isAuthor) delete pData.notes;
-      
+
       return pData;
     });
 
@@ -134,7 +134,7 @@ router.get('/:id', authenticate, async (req, res) => {
   try {
     const currentUser = await prisma.user.findUnique({
       where: { id: req.userId },
-      select: { isAdmin: true }
+      select: { isAdmin: true, email: true }
     });
 
     const problem = await prisma.problem.findUnique({
@@ -164,16 +164,15 @@ router.get('/:id', authenticate, async (req, res) => {
     if (!problem) return res.status(404).json({ error: 'Problem not found' });
 
     const isAuthor = problem.authorId === req.userId;
-    const isAdmin = currentUser?.isAdmin || false;
+    const isAdmin = currentUser?.isAdmin || ADMIN_EMAILS.includes(currentUser?.email);
+    
     const result = { ...problem };
-
     if (!isAdmin) delete result.answer;
-    // Task 6: Admins can see notes. Task 4: Authors can see notes.
     if (!isAdmin && !isAuthor) delete result.notes;
-
+    
     result._isAuthor = isAuthor;
     result._isAdmin = isAdmin;
-
+    
     res.json(result);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch problem', details: error.message });
@@ -183,11 +182,11 @@ router.get('/:id', authenticate, async (req, res) => {
 // Update problem
 router.put('/:id', authenticate, async (req, res) => {
   try {
-    const { latex, topics, quality, stage, solution, answer, notes } = req.body;
-    
+    const { latex, topics, quality, stage, solution, answer, notes, adminCode } = req.body;
+
     const currentUser = await prisma.user.findUnique({
       where: { id: req.userId },
-      select: { isAdmin: true }
+      select: { isAdmin: true, email: true }
     });
 
     const existing = await prisma.problem.findUnique({
@@ -197,23 +196,37 @@ router.put('/:id', authenticate, async (req, res) => {
     if (!existing) return res.status(404).json({ error: 'Problem not found' });
 
     const isAuthor = existing.authorId === req.userId;
-    const isAdmin = currentUser?.isAdmin || false;
+    const isSuperAdmin = ADMIN_EMAILS.includes(currentUser?.email) && adminCode === ADMIN_CODE;
+    const isAdmin = currentUser?.isAdmin || ADMIN_EMAILS.includes(currentUser?.email);
 
-    // Task 2: Only author or admin can edit
+    // Only author or admin can edit
     if (!isAuthor && !isAdmin) {
       return res.status(403).json({ error: 'Not authorized' });
     }
 
-    const updateData = { 
-      latex, 
-      solution: solution !== undefined ? solution : existing.solution,
-      topics, 
-      quality, 
-      stage 
-    };
-    
+    // Restriction: Non-admins cannot change stage
+    if (!isSuperAdmin && stage !== undefined && stage !== existing.stage) {
+        return res.status(403).json({ error: 'Only admins with the correct code can change the stage' });
+    }
+
+    const updateData = {};
+    if (latex !== undefined) updateData.latex = latex;
+    if (solution !== undefined) updateData.solution = solution;
+    if (topics !== undefined) updateData.topics = topics;
+    if (quality !== undefined) updateData.quality = quality;
+    if (stage !== undefined) updateData.stage = stage;
     if (notes !== undefined) updateData.notes = notes;
     if (answer !== undefined) updateData.answer = answer;
+
+    // Task: Reset endorsements on edit (if content changed)
+    const isContentEdit = (latex !== undefined && latex !== existing.latex) ||
+                          (solution !== undefined && solution !== existing.solution) ||
+                          (answer !== undefined && answer !== existing.answer) ||
+                          (topics !== undefined && JSON.stringify(topics) !== JSON.stringify(existing.topics));
+
+    if (isContentEdit) {
+        updateData.endorsements = 0;
+    }
 
     const problem = await prisma.problem.update({
       where: { id: req.params.id },
@@ -238,13 +251,20 @@ router.put('/:id', authenticate, async (req, res) => {
 // Delete problem
 router.delete('/:id', authenticate, async (req, res) => {
   try {
+    const currentUser = await prisma.user.findUnique({
+        where: { id: req.userId },
+        select: { isAdmin: true, email: true }
+    });
+
     const existing = await prisma.problem.findUnique({
       where: { id: req.params.id }
     });
 
     if (!existing) return res.status(404).json({ error: 'Problem not found' });
 
-    if (existing.authorId !== req.userId) {
+    const isAdmin = currentUser?.isAdmin || ADMIN_EMAILS.includes(currentUser?.email);
+
+    if (existing.authorId !== req.userId && !isAdmin) {
       return res.status(403).json({ error: 'Not authorized' });
     }
 
