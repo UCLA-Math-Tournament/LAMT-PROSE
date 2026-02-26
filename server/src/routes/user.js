@@ -52,4 +52,36 @@ router.put('/profile', authenticate, async (req, res) => {
   }
 });
 
+// Get public user profile by ID
+router.get('/:id', authenticate, async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.params.id },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        initials: true,
+        mathExp: true,
+        problems: {
+          select: {
+            id: true,
+            latex: true,
+            topics: true,
+            stage: true,
+            quality: true,
+            endorsements: true,
+            createdAt: true
+          },
+          orderBy: { createdAt: 'desc' }
+        }
+      }
+    });
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    res.json(user);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch user profile' });
+  }
+});
+
 export default router;
