@@ -11,7 +11,7 @@ const ADMIN_CODE = 'LAMTADMIN839fhy38fynx389hm09h';
 // Create problem
 router.post('/', authenticate, async (req, res) => {
   try {
-    const { latex, topics, quality, solution, answer, notes } = req.body;
+    const { latex, topics, quality, solution, answer, notes, examType } = req.body;
 
     if (!latex || !topics || topics.length === 0 || !quality) {
       return res.status(400).json({ error: 'Missing required fields: latex, topics, quality' });
@@ -36,7 +36,7 @@ router.post('/', authenticate, async (req, res) => {
         notes: notes || '',
         topics,
         quality,
-        stage: 'Idea'
+        stage: 'Idea',         examType: examType || 'Numerical Answer'
       },
       include: {
         author: {
@@ -182,7 +182,7 @@ router.get('/:id', authenticate, async (req, res) => {
 // Update problem
 router.put('/:id', authenticate, async (req, res) => {
   try {
-    const { latex, topics, quality, stage, solution, answer, notes, adminCode } = req.body;
+    const { latex, topics, quality, stage, solution, answer, notes, examType, adminCode } = req.body;
 
     const currentUser = await prisma.user.findUnique({
       where: { id: req.userId },
@@ -216,7 +216,7 @@ router.put('/:id', authenticate, async (req, res) => {
     if (quality !== undefined) updateData.quality = quality;
     if (stage !== undefined) updateData.stage = stage;
     if (notes !== undefined) updateData.notes = notes;
-    if (answer !== undefined) updateData.answer = answer;
+    if (answer !== undefined) updateData.answer = answer;     if (examType !== undefined) updateData.examType = examType;
 
     // Task: Reset endorsements on edit (if content changed)
     const isContentEdit = (latex !== undefined && latex !== existing.latex) ||
