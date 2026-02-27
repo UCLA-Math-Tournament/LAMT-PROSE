@@ -180,6 +180,7 @@ router.get('/:id', authenticate, async (req, res) => {
 });
 
 // Update problem
+// Update problem
 router.put('/:id', authenticate, async (req, res) => {
   try {
     const { latex, topics, quality, stage, solution, answer, notes, examType, adminCode } = req.body;
@@ -204,9 +205,9 @@ router.put('/:id', authenticate, async (req, res) => {
       return res.status(403).json({ error: 'Not authorized' });
     }
 
-    // Restriction: Non-admins cannot change stage
-    if (!isSuperAdmin && stage !== undefined && stage !== existing.stage) {
-        return res.status(403).json({ error: 'Only admins with the correct code can change the stage' });
+    // Only admins (or superadmin with code) can change stage
+    if (!isAdmin && stage !== undefined && stage !== existing.stage) {
+      return res.status(403).json({ error: 'Only admins can change the stage' });
     }
 
     const updateData = {};
@@ -216,16 +217,18 @@ router.put('/:id', authenticate, async (req, res) => {
     if (quality !== undefined) updateData.quality = quality;
     if (stage !== undefined) updateData.stage = stage;
     if (notes !== undefined) updateData.notes = notes;
-    if (answer !== undefined) updateData.answer = answer;     if (examType !== undefined) updateData.examType = examType;
+    if (answer !== undefined) updateData.answer = answer;
+    if (examType !== undefined) updateData.examType = examType;
 
-    // Task: Reset endorsements on edit (if content changed)
-    const isContentEdit = (latex !== undefined && latex !== existing.latex) ||
-                          (solution !== undefined && solution !== existing.solution) ||
-                          (answer !== undefined && answer !== existing.answer) ||
-                          (topics !== undefined && JSON.stringify(topics) !== JSON.stringify(existing.topics));
+    // Reset endorsements on content edit
+    const isContentEdit =
+      (latex !== undefined && latex !== existing.latex) ||
+      (solution !== undefined && solution !== existing.solution) ||
+      (answer !== undefined && answer !== existing.answer) ||
+      (topics !== undefined && JSON.stringify(topics) !== JSON.stringify(existing.topics));
 
     if (isContentEdit) {
-        updateData.endorsements = 0;
+      updateData.endorsements = 0;
     }
 
     const problem = await prisma.problem.update({
