@@ -28,12 +28,14 @@ const Leaderboard = () => {
   const getBadgeColor = (type) => {
     switch (type) {
       case 'onTest': return 'bg-ucla-blue text-white';
-      case 'Endorsements': return 'bg-ucla-gold text-black';
+      case 'approved': return 'bg-ucla-gold text-black';
+      case 'endorsed': return 'bg-green-600 text-white';
       case 'idea': return 'bg-ucla-light-blue text-white';
       case 'needsReview': return 'bg-red-500 text-white';
       default: return 'bg-gray-200';
     }
   };
+
 
   const filtered = leaderboard.filter(entry =>
     search === '' ||
@@ -77,13 +79,15 @@ const Leaderboard = () => {
               <tr>
                 <th className="px-4 py-3 text-left">Rank</th>
                 <th className="px-4 py-3 text-left">Author</th>
-                <th className="px-4 py-3 text-center">On Test (6pts)</th>
-                <th className="px-4 py-3 text-center">Endorsements (5pts)</th>
-                <th className="px-4 py-3 text-center">Idea (3pts)</th>
-                <th className="px-4 py-3 text-center">Needs Review (-2pts)</th>
+                <th className="px-4 py-3 text-center">On Test (10 pts)</th>
+                <th className="px-4 py-3 text-center">Approved for Exam (8 pts)</th>
+                <th className="px-4 py-3 text-center">Endorsed (5 pts)</th>
+                <th className="px-4 py-3 text-center">Idea (3 pts)</th>
+                <th className="px-4 py-3 text-center">Needs Review (-2 pts)</th>
                 <th className="px-4 py-3 text-right">Total Score</th>
               </tr>
             </thead>
+
             <tbody>
               {filtered.map((entry, index) => (
                 <tr
@@ -91,22 +95,14 @@ const Leaderboard = () => {
                   className="border-b hover:bg-gray-50 cursor-pointer"
                   onClick={() => navigate(`/users/${entry.userId}`)}
                 >
-                  <td className="px-4 py-3">
-                    {index < 3 ? (
-                      <span className="text-2xl">
-                        {index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉'}
-                      </span>
-                    ) : (
-                      <span className="font-semibold text-gray-600">{index + 1}</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="font-medium">{entry.author}</div>
-                    <div className="text-xs text-gray-400">{entry.initials}</div>
-                  </td>
                   <td className="px-4 py-3 text-center">
                     <span className={`px-3 py-1 rounded-full text-sm font-semibold ${getBadgeColor('onTest')}`}>
                       {entry.badges.onTest}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    <span className={`px-3 py-1 rounded-full text-sm font-semibold ${getBadgeColor('approved')}`}>
+                      {entry.badges.approved}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-center">
