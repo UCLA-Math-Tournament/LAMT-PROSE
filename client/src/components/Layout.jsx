@@ -36,7 +36,7 @@ const Sidebar = ({ dark, toggleDark }) => {
     { to: '/leaderboard', icon: Trophy, label: 'Leaderboard' },
     { to: '/feedback', icon: MessageSquare, label: 'Give Feedback' },
     { to: '/tests', icon: FileText, label: 'View Tests' },
-        { to: '/questions-to-endorse', icon: Star, label: 'Questions to Endorse' },
+        { to: '/questions-to-endorse', icon: Star, label: 'Questions to Approve' },
   ];
 
   return (
