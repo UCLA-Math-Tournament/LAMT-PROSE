@@ -377,7 +377,8 @@ const ProblemDetail = () => {
               >
                 Resolve
               </button>
-              {(problem._isAuthor || problem._isAdmin) && !fb.isEndorsement && (
+            )}
+          {(problem._isAuthor || problem._isAdmin) && !fb.isEndorsement && (
   <button
     onClick={async () => {
       await api.put(`/feedback/${fb.id}/resolve`); // keep this if you want it resolved
@@ -390,7 +391,6 @@ const ProblemDetail = () => {
   </button>
 )}
 
-            )}
         </div>
       </div>
 
