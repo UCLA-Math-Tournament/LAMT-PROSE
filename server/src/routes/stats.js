@@ -12,7 +12,7 @@ router.get('/leaderboard', authenticate, async (req, res) => {
       include: {
         problems: {
           include: {
-            feedbacks: true,   // we need needsReview + resolved
+            feedbacks: true, // we need needsReview + resolved
           },
         },
       },
@@ -99,20 +99,20 @@ router.get('/dashboard', authenticate, async (req, res) => {
         stage: true,
         quality: true,
         endorsements: true,
-        createdAt: true
-      }
+        createdAt: true,
+      },
     });
 
     const topicCounts = {};
-    problems.forEach(p => {
-      p.topics.forEach(t => {
+    problems.forEach((p) => {
+      p.topics.forEach((t) => {
         topicCounts[t] = (topicCounts[t] || 0) + 1;
       });
     });
 
     const stageCounts = {};
     let totalEndorsements = 0;
-    problems.forEach(p => {
+    problems.forEach((p) => {
       stageCounts[p.stage] = (stageCounts[p.stage] || 0) + 1;
       totalEndorsements += p.endorsements || 0;
     });
@@ -121,7 +121,7 @@ router.get('/dashboard', authenticate, async (req, res) => {
       totalProblems: problems.length,
       totalEndorsements,
       topicCounts,
-      stageCounts
+      stageCounts,
     });
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch dashboard stats' });
@@ -134,13 +134,13 @@ router.get('/tournament-progress', authenticate, async (req, res) => {
     const problems = await prisma.problem.findMany({
       select: {
         stage: true,
-        createdAt: true
+        createdAt: true,
       },
-      orderBy: { createdAt: 'asc' }
+      orderBy: { createdAt: 'asc' },
     });
 
     const progressByDate = {};
-    problems.forEach(p => {
+    problems.forEach((p) => {
       const date = new Date(p.createdAt).toISOString().split('T')[0];
       if (!progressByDate[date]) {
         progressByDate[date] = {
@@ -148,7 +148,7 @@ router.get('/tournament-progress', authenticate, async (req, res) => {
           idea: 0,
           endorsed: 0,
           onTest: 0,
-          published: 0
+          published: 0,
         };
       }
 
@@ -162,7 +162,7 @@ router.get('/tournament-progress', authenticate, async (req, res) => {
     const cumulative = [];
     let totals = { idea: 0, endorsed: 0, onTest: 0, published: 0 };
 
-    dates.forEach(date => {
+    dates.forEach((date) => {
       totals.idea += progressByDate[date].idea;
       totals.endorsed += progressByDate[date].endorsed;
       totals.onTest += progressByDate[date].onTest;
@@ -174,7 +174,8 @@ router.get('/tournament-progress', authenticate, async (req, res) => {
         endorsed: totals.endorsed,
         onTest: totals.onTest,
         published: totals.published,
-        total: totals.idea + totals.endorsed + totals.onTest + totals.published
+        total:
+          totals.idea + totals.endorsed + totals.onTest + totals.published,
       });
     });
 
