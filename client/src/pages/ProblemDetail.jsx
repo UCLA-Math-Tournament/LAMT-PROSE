@@ -289,12 +289,12 @@ const ProblemDetail = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div className="bg-white rounded-lg shadow-md p-6 border-t-4 border-ucla-blue">
               <h2 className="text-xl font-semibold mb-4 text-ucla-blue">Final Answer</h2>
-              {problem.answer ? (
-                <div className="text-2xl font-mono text-ucla-blue bg-blue-50 p-4 rounded-lg text-center">
-                  {problem.answer}
-                </div>
-              ) : (
-                <p className="text-gray-500 italic">No answer provided</p>
+                {problem.answer ? (
+                   <div className="text-2xl text-ucla-blue bg-blue-50 p-4 rounded-lg text-center">
+                      <KatexRenderer latex={problem.answer} />
+                  </div>
+                ) : (
+                  <p className="text-gray-500 italic">No answer provided</p>
               )}
             </div>
             <div className="bg-white rounded-lg shadow-md p-6">
