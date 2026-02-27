@@ -18,7 +18,6 @@ const GiveFeedback = () => {
     loadNextProblem();
   }, []);
 
-  // Set start time when a new problem loads
   useEffect(() => {
     if (problem) {
       setStartTime(Date.now());
@@ -26,7 +25,6 @@ const GiveFeedback = () => {
     }
   }, [problem]);
 
-  // Live timer tick every second
   useEffect(() => {
     if (!problem) return;
     const interval = setInterval(() => {
@@ -42,7 +40,7 @@ const GiveFeedback = () => {
         setProblem(response.data);
         setAnswer('');
         setFeedback('');
-        setIsEndorsement(false); // Reset to Needs Review
+        setIsEndorsement(false);
         setMessage('');
       } else {
         setProblem(null);
@@ -54,11 +52,19 @@ const GiveFeedback = () => {
     }
   };
 
+  const handleSkip = () => {
+    if (loading) return;
+    setMessage('Skipping problem...');
+    loadNextProblem();
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
-    const timeSpent = startTime ? Math.floor((Date.now() - startTime) / 1000) : null;
+    const timeSpent = startTime
+      ? Math.floor((Date.now() - startTime) / 1000)
+      : null;
 
     try {
       await api.post('/feedback', {
@@ -71,19 +77,18 @@ const GiveFeedback = () => {
 
       setMessage('Feedback submitted! Loading next problem...');
       setTimeout(loadNextProblem, 1000);
-  } catch (error) {
-    console.error(
-      'Submit error',
-      error.response?.data || error.message || error
-    );
+    } catch (error) {
+      console.error(
+        'Submit error',
+        error.response?.data || error.message || error
+      );
 
-    setMessage(
-      error.response?.data?.error || 'Failed to submit feedback'
-    );
-  } finally {
-    setLoading(false);
-  }
-
+      setMessage(
+        error.response?.data?.error || 'Failed to submit feedback'
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   const minutes = Math.floor(elapsed / 60);
@@ -92,8 +97,12 @@ const GiveFeedback = () => {
   return (
     <Layout>
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold text-ucla-blue mb-2">Give Feedback</h1>
-        <p className="text-gray-600 mb-8">Help improve problems by providing solutions and feedback</p>
+        <h1 className="text-3xl font-bold text-ucla-blue mb-2">
+          Give Feedback
+        </h1>
+        <p className="text-gray-600 mb-8">
+          Help improve problems by providing solutions and feedback
+        </p>
 
         {!problem && !message && (
           <div className="flex items-center justify-center h-64">
@@ -109,10 +118,13 @@ const GiveFeedback = () => {
 
         {problem && (
           <div className="space-y-6">
+            {/* Problem card */}
             <div className="bg-white rounded-lg shadow-md p-6">
               <div className="flex justify-between items-start mb-4">
                 <div>
-                  <h2 className="text-xl font-semibold text-ucla-blue">Problem {problem.id}</h2>
+                  <h2 className="text-xl font-semibold text-ucla-blue">
+                    Problem {problem.id}
+                  </h2>
                   <p className="text-sm text-gray-600">
                     by {problem.author.firstName} {problem.author.lastName}
                   </p>
@@ -135,13 +147,29 @@ const GiveFeedback = () => {
 
               <div className="mt-4 flex gap-2">
                 {problem.topics.map((topic) => (
-                  <span key={topic} className="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded">
+                  <span
+                    key={topic}
+                    className="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded"
+                  >
                     {topic}
                   </span>
                 ))}
               </div>
             </div>
 
+            {/* Skip button between problem and form */}
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={handleSkip}
+                disabled={loading}
+                className="px-4 py-2 text-sm font-semibold text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+              >
+                Skip this Problem
+              </button>
+            </div>
+
+            {/* Feedback form */}
             <div className="bg-white rounded-lg shadow-md p-6">
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
@@ -179,7 +207,9 @@ const GiveFeedback = () => {
                         checked={isEndorsement}
                         onChange={() => setIsEndorsement(true)}
                       />
-                      <span>Endorse this Problem (No Changes Needed)</span>
+                      <span>
+                        Endorse this Problem (No Changes Needed)
+                      </span>
                     </label>
                   </div>
                 </div>
