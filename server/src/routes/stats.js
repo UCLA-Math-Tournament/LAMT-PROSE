@@ -12,6 +12,9 @@ router.get('/leaderboard', authenticate, async (req, res) => {
       include: {
         problems: {
           select: { stage: true }
+                },
+      feedbacks: {
+        select: { id: true }
         }
       }
     });
@@ -22,6 +25,7 @@ router.get('/leaderboard', authenticate, async (req, res) => {
         endorsed: 0,
         idea: 0,
         needsReview: 0
+              feedbacksGiven: 0
       };
 
       user.problems.forEach(p => {
@@ -30,9 +34,10 @@ router.get('/leaderboard', authenticate, async (req, res) => {
         else if (p.stage === 'Idea') badges.idea++;
         else if (p.stage === 'Needs Review') badges.needsReview++;
       });
+    
+    badges.feedbacksGiven = user.feedbacks.length;
 
-      const score = badges.onTest * 6 + badges.endorsed * 5 + badges.idea * 3 - badges.needsReview * 2;
-
+    const score = badges.onTest * 10 + badges.endorsed * 6 + badges.idea * 3 - badges.needsReview * 2 + badges.feedbacksGiven;
       return {
         userId: user.id,
         author: `${user.firstName} ${user.lastName}`,
