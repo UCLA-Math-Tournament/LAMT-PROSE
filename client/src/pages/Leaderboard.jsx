@@ -87,52 +87,79 @@ const Leaderboard = () => {
                 <th className="px-4 py-3 text-right">Total Score</th>
               </tr>
             </thead>
-
-            <tbody>
-              {filtered.map((entry, index) => (
-                <tr
-                  key={entry.userId}
-                  className="border-b hover:bg-gray-50 cursor-pointer"
-                  onClick={() => navigate(`/users/${entry.userId}`)}
-                >
-                  <td className="px-4 py-3 text-center">
-                    <span className={`px-3 py-1 rounded-full text-sm font-semibold ${getBadgeColor('onTest')}`}>
-                      {entry.badges.onTest}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    <span className={`px-3 py-1 rounded-full text-sm font-semibold ${getBadgeColor('approved')}`}>
-                      {entry.badges.approved}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    <span className={`px-3 py-1 rounded-full text-sm font-semibold ${getBadgeColor('endorsed')}`}>
-                      {entry.badges.endorsed}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    <span className={`px-3 py-1 rounded-full text-sm font-semibold ${getBadgeColor('idea')}`}>
-                      {entry.badges.idea}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    <span className={`px-3 py-1 rounded-full text-sm font-semibold ${getBadgeColor('needsReview')}`}>
-                      {entry.badges.needsReview}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <span className="text-xl font-bold text-ucla-blue">{entry.score}</span>
-                  </td>
-                </tr>
-              ))}
-              {filtered.length === 0 && (
-                <tr>
-                  <td colSpan={7} className="text-center py-8 text-gray-500">
-                    No results found for "{search}"
-                  </td>
-                </tr>
-              )}
-            </tbody>
+              <tbody>
+                {filtered.map((entry, index) => (
+                  <tr
+                    key={entry.userId}
+                    className="border-b hover:bg-gray-50 cursor-pointer"
+                    onClick={() => navigate(`/users/${entry.userId}`)}
+                  >
+                    {/* Rank */}
+                    <td className="px-4 py-3">
+                      {index < 3 ? (
+                        <span className="text-2xl">
+                          {index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉'}
+                        </span>
+                      ) : (
+                        <span className="font-semibold text-gray-600">{index + 1}</span>
+                      )}
+                    </td>
+              
+                    {/* Author */}
+                    <td className="px-4 py-3">
+                      <div className="font-medium">{entry.author}</div>
+                      <div className="text-xs text-gray-400">{entry.initials}</div>
+                    </td>
+              
+                    {/* On Test */}
+                    <td className="px-4 py-3 text-center">
+                      <span className={`px-3 py-1 rounded-full text-sm font-semibold ${getBadgeColor('onTest')}`}>
+                        {entry.badges.onTest}
+                      </span>
+                    </td>
+              
+                    {/* Approved for Exam */}
+                    <td className="px-4 py-3 text-center">
+                      <span className={`px-3 py-1 rounded-full text-sm font-semibold ${getBadgeColor('approved')}`}>
+                        {entry.badges.approved}
+                      </span>
+                    </td>
+              
+                    {/* Endorsed */}
+                    <td className="px-4 py-3 text-center">
+                      <span className={`px-3 py-1 rounded-full text-sm font-semibold ${getBadgeColor('endorsed')}`}>
+                        {entry.badges.endorsed}
+                      </span>
+                    </td>
+              
+                    {/* Idea */}
+                    <td className="px-4 py-3 text-center">
+                      <span className={`px-3 py-1 rounded-full text-sm font-semibold ${getBadgeColor('idea')}`}>
+                        {entry.badges.idea}
+                      </span>
+                    </td>
+              
+                    {/* Needs Review */}
+                    <td className="px-4 py-3 text-center">
+                      <span className={`px-3 py-1 rounded-full text-sm font-semibold ${getBadgeColor('needsReview')}`}>
+                        {entry.badges.needsReview}
+                      </span>
+                    </td>
+              
+                    {/* Total Score */}
+                    <td className="px-4 py-3 text-right">
+                      <span className="text-xl font-bold text-ucla-blue">{entry.score}</span>
+                    </td>
+                  </tr>
+                ))}
+                {filtered.length === 0 && (
+                  <tr>
+                    <td colSpan={8} className="text-center py-8 text-gray-500">
+                      No results found for "{search}"
+                    </td>
+                  </tr>
+                )}
+              </tbody>
           </table>
         </div>
       </div>
