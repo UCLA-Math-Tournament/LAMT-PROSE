@@ -139,13 +139,13 @@ const Dashboard = () => {
                 </tr>
               ) : (
                 filteredProblems.map((problem) => (
-                  <Fragment key={problem.id}>
-                    <tr className="border-b hover:bg-gray-50">
-                      {/* ID cell navigates to detail page */}
-                      <td
-                        className="px-4 py-3 font-medium text-ucla-blue cursor-pointer"
-                        onClick={() => navigate(`/problem/${problem.id}`)}
-                      >
+                  <>
+                    <tr
+                      key={problem.id}
+                      className="border-b hover:bg-gray-50 cursor-pointer"
+                      onClick={() => navigate(`/problem/${problem.id}`)}
+                    >
+                      <td className="px-4 py-3 font-medium text-ucla-blue">
                         {problem.id}
                       </td>
                       <td className="px-4 py-3">
@@ -194,24 +194,12 @@ const Dashboard = () => {
                       <td className="px-4 py-3">
                         {new Date(problem.createdAt).toLocaleDateString()}
                       </td>
-                      {/* Chevron cell controls expansion only */}
                       <td className="px-4 py-3">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setExpandedId(
-                              expandedId === problem.id ? null : problem.id,
-                            );
-                          }}
-                          className="p-1 rounded hover:bg-gray-200"
-                        >
-                          {expandedId === problem.id ? (
-                            <ChevronUp size={20} />
-                          ) : (
-                            <ChevronDown size={20} />
-                          )}
-                        </button>
+                        {expandedId === problem.id ? (
+                          <ChevronUp size={20} />
+                        ) : (
+                          <ChevronDown size={20} />
+                        )}
                       </td>
                     </tr>
                     {expandedId === problem.id && (
@@ -223,7 +211,7 @@ const Dashboard = () => {
                         </td>
                       </tr>
                     )}
-                  </Fragment>
+                  </>
                 ))
               )}
             </tbody>
