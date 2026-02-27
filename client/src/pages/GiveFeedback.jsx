@@ -11,6 +11,7 @@ const GiveFeedback = () => {
   const [startTime, setStartTime] = useState(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const [isEndorsement, setIsEndorsement] = useState(false);
 
   useEffect(() => {
     loadNextProblem();
@@ -51,7 +52,8 @@ const GiveFeedback = () => {
         problemId: problem.id,
         answer,
         feedback,
-        timeSpent
+        timeSpent,
+        isEndorsement,
       });
 
       setMessage('Feedback submitted! Loading next problem...');
@@ -132,7 +134,33 @@ const GiveFeedback = () => {
                     required
                   />
                 </div>
-
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Review Type
+                  </label>
+                  <div className="flex gap-4 text-sm">
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="radio"
+                        name="reviewType"
+                        checked={!isEndorsement}
+                        onChange={() => setIsEndorsement(false)}
+                      />
+                      <span>Needs Review</span>
+                    </label>
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="radio"
+                        name="reviewType"
+                        checked={isEndorsement}
+                        onChange={() => setIsEndorsement(true)}
+                      />
+                      <span>Endorse this Problem (No Changes Needed)</span>
+                    </label>
+                  </div>
+                </div>
+                
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Feedback & Comments
