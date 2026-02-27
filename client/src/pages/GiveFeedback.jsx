@@ -104,7 +104,7 @@ const GiveFeedback = () => {
                 </div>
               </div>
 
-              <div className="prose max-w-none text-red-600">
+              <div className="prose max-w-none">
                 <KatexRenderer latex={problem.latex} />
               </div>
 
