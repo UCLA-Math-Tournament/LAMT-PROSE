@@ -9,23 +9,16 @@ const prisma = new PrismaClient();
 router.get('/next', authenticate, async (req, res) => {
   try {
     // Get all problems not authored by current user
-    const problems = await prisma.problem.findMany({
-      where: {
-        authorId: { not: req.userId }
-      },
-      include: {
-        author: {
-          select: {
-            firstName: true,
-            lastName: true,
-            initials: true
-          }
-        },
-        feedbacks: {
-          where: { userId: req.userId }
-        }
-      }
-    });
+   const problems = await prisma.problem.findMany({
+  where: {
+    authorId: { not: req.userId },
+    stage: { notIn: ['On Test', 'Approved for Exam'] },  // add this
+  },
+  include: {
+    author: { select: { firstName: true, lastName: true, initials: true } },
+    feedbacks: { where: { userId: req.userId } },
+  },
+});
 
     // Filter out problems already reviewed by user
     const unreviewed = problems.filter(p => p.feedbacks.length === 0);
@@ -96,7 +89,7 @@ router.post('/', authenticate, async (req, res) => {
     if (existing) {
       return res.status(400).json({ error: `Already submitted ${isEndorsement ? 'an endorsement' : 'feedback'} for this problem` });
     }
-
+    
     const newFeedback = await prisma.feedback.create({
       data: {
         problemId,
@@ -105,9 +98,11 @@ router.post('/', authenticate, async (req, res) => {
         feedback: feedback || '',
         timeSpent,
         isEndorsement: !!isEndorsement,
-        resolved: false
-      }
+        needsReview: !isEndorsement,   // ensure non‑endorse feedback is flagged
+        resolved: false,
+      },
     });
+
 
     // Update problem stats
     const updateData = {};
