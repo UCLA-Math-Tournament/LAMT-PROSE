@@ -90,32 +90,44 @@ router.post('/', authenticate, async (req, res) => {
       return res.status(400).json({ error: `Already submitted ${isEndorsement ? 'an endorsement' : 'feedback'} for this problem` });
     }
     
-    const newFeedback = await prisma.feedback.create({
-      data: {
-        problemId,
-        userId: req.userId,
-        answer: answer || '',
-        feedback: feedback || '',
-        timeSpent,
-        isEndorsement: !!isEndorsement,
-        needsReview: !isEndorsement,   // ensure non‑endorse feedback is flagged
-        resolved: false,
-      },
-    });
+const newFeedback = await prisma.feedback.create({
+  data: {
+    problemId,
+    userId: req.userId,
+    answer: answer || '',
+    feedback: feedback || '',
+    timeSpent,
+    isEndorsement: !!isEndorsement,
+    needsReview: !isEndorsement,
+    resolved: false,
+  }
+});
 
+// Update problem stats
+const updateData = {};
+if (isEndorsement) {
+  updateData.endorsements = { increment: 1 };
+} else {
+  updateData.solveCount = { increment: 1 };
+}
 
-    // Update problem stats
-    const updateData = {};
-    if (isEndorsement) {
-      updateData.endorsements = { increment: 1 };
-    } else {
-      updateData.solveCount = { increment: 1 };
-    }
+const updatedProblem = await prisma.problem.update({
+  where: { id: problemId },
+  data: updateData,
+});
 
-    const updatedProblem = await prisma.problem.update({
-      where: { id: problemId },
-      data: updateData
-    });
+// NEW: if it has at least 1 endorsement and no pending needs review, set stage
+if (
+  isEndorsement &&
+  updatedProblem.endorsements >= 1 &&
+  updatedProblem.stage === 'Idea'
+) {
+  await prisma.problem.update({
+    where: { id: problemId },
+    data: { stage: 'Endorsed' },
+  });
+}
+
 
     // Task 9: Auto-promote to "Live/Ready for Review" after 3 endorsements
     if (isEndorsement && updatedProblem.endorsements >= 3 && updatedProblem.stage === 'Review') {
