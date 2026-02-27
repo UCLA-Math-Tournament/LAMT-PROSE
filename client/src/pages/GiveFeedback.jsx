@@ -9,6 +9,7 @@ const GiveFeedback = () => {
   const [answer, setAnswer] = useState('');
   const [feedback, setFeedback] = useState('');
   const [startTime, setStartTime] = useState(null);
+  const [elapsed, setElapsed] = useState(0);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [isEndorsement, setIsEndorsement] = useState(false);
@@ -17,10 +18,21 @@ const GiveFeedback = () => {
     loadNextProblem();
   }, []);
 
+  // Set start time when a new problem loads
   useEffect(() => {
     if (problem) {
       setStartTime(Date.now());
+      setElapsed(0);
     }
+  }, [problem]);
+
+  // Live timer tick every second
+  useEffect(() => {
+    if (!problem) return;
+    const interval = setInterval(() => {
+      setElapsed((prev) => prev + 1);
+    }, 1000);
+    return () => clearInterval(interval);
   }, [problem]);
 
   const loadNextProblem = async () => {
@@ -30,6 +42,7 @@ const GiveFeedback = () => {
         setProblem(response.data);
         setAnswer('');
         setFeedback('');
+        setIsEndorsement(false); // Reset to Needs Review
         setMessage('');
       } else {
         setProblem(null);
@@ -65,9 +78,8 @@ const GiveFeedback = () => {
     }
   };
 
-  const elapsedTime = startTime ? Math.floor((Date.now() - startTime) / 1000) : 0;
-  const minutes = Math.floor(elapsedTime / 60);
-  const seconds = elapsedTime % 60;
+  const minutes = Math.floor(elapsed / 60);
+  const seconds = elapsed % 60;
 
   return (
     <Layout>
@@ -96,11 +108,14 @@ const GiveFeedback = () => {
                   <p className="text-sm text-gray-600">
                     by {problem.author.firstName} {problem.author.lastName}
                   </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Difficulty: {problem.quality}/10
+                  </p>
                 </div>
 
                 <div className="flex items-center gap-2 text-gray-600">
                   <Clock size={20} />
-                  <span className="font-mono">
+                  <span className="font-mono w-12 text-right">
                     {minutes}:{seconds.toString().padStart(2, '0')}
                   </span>
                 </div>
@@ -111,7 +126,7 @@ const GiveFeedback = () => {
               </div>
 
               <div className="mt-4 flex gap-2">
-                {problem.topics.map(topic => (
+                {problem.topics.map((topic) => (
                   <span key={topic} className="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded">
                     {topic}
                   </span>
@@ -134,13 +149,13 @@ const GiveFeedback = () => {
                     required
                   />
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Review Type
                   </label>
                   <div className="flex gap-4 text-sm">
-                    <label className="flex items-center gap-2">
+                    <label className="flex items-center gap-2 cursor-pointer">
                       <input
                         type="radio"
                         name="reviewType"
@@ -149,7 +164,7 @@ const GiveFeedback = () => {
                       />
                       <span>Needs Review</span>
                     </label>
-                    <label className="flex items-center gap-2">
+                    <label className="flex items-center gap-2 cursor-pointer">
                       <input
                         type="radio"
                         name="reviewType"
@@ -160,7 +175,7 @@ const GiveFeedback = () => {
                     </label>
                   </div>
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Feedback & Comments
@@ -184,7 +199,7 @@ const GiveFeedback = () => {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full bg-ucla-blue text-white py-2 rounded-lg hover:bg-ucla-dark-blue transition-colors disabled:opacity-50"
+                  className="w-full bg-ucla-blue text-white py-2 rounded-lg hover:bg-ucla-dark-blue transition-colors disabled:opacity-50 font-bold"
                 >
                   {loading ? 'Submitting...' : 'Submit & Next'}
                 </button>
