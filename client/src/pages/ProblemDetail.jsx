@@ -264,7 +264,7 @@ const ProblemDetail = () => {
                 ))}
               </div>
               <div className="mt-4 flex gap-4 text-sm text-gray-600 items-center">
-                <span>Quality: {problem.quality}/10</span>
+                <span>Difficulty:  {problem.quality}/10</span>
                 <span className={`px-2 py-1 text-xs rounded ${
                   problem.stage === 'On Test' ? 'bg-blue-100 text-blue-800' :
                   problem.stage === 'Live/Ready for Review' ? 'bg-green-100 text-green-800' :
