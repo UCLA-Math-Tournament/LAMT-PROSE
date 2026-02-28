@@ -14,6 +14,10 @@ const GiveFeedback = () => {
   const [message, setMessage] = useState('');
   const [isEndorsement, setIsEndorsement] = useState(false);
 
+  // new: track last feedback and edit mode
+  const [lastFeedback, setLastFeedback] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
+
   useEffect(() => {
     loadNextProblem();
   }, []);
@@ -42,6 +46,7 @@ const GiveFeedback = () => {
         setFeedback('');
         setIsEndorsement(false);
         setMessage('');
+        setIsEditing(false);
       } else {
         setProblem(null);
         setMessage('No more problems to review!');
@@ -67,16 +72,33 @@ const GiveFeedback = () => {
       : null;
 
     try {
-      await api.post('/feedback', {
-        problemId: problem.id,
-        answer,
-        feedback,
-        timeSpent,
-        isEndorsement,
-      });
+      let response;
 
-      setMessage('Feedback submitted! Loading next problem...');
-      setTimeout(loadNextProblem, 1000);
+      if (isEditing && lastFeedback) {
+        // edit existing feedback (adjust endpoint as needed)
+        response = await api.patch(`/feedback/${lastFeedback.id}`, {
+          answer,
+          feedback,
+          isEndorsement,
+          timeSpent,
+        });
+        setMessage('Feedback updated!');
+      } else {
+        // create new feedback
+        response = await api.post('/feedback', {
+          problemId: problem.id,
+          answer,
+          feedback,
+          timeSpent,
+          isEndorsement,
+        });
+        setMessage('Feedback submitted! Loading next problem...');
+        setTimeout(loadNextProblem, 1000);
+      }
+
+      // assume response.data has the saved feedback object
+      setLastFeedback(response.data);
+      setIsEditing(false);
     } catch (error) {
       console.error(
         'Submit error',
@@ -93,6 +115,30 @@ const GiveFeedback = () => {
 
   const minutes = Math.floor(elapsed / 60);
   const seconds = elapsed % 60;
+
+  const handleEditLastFeedback = async () => {
+    if (!lastFeedback) return;
+
+    // if your backend can return the problem with the feedback, prefer that
+    // here we assume lastFeedback.problem or refetch by id if needed
+    try {
+      if (!lastFeedback.problem) {
+        const res = await api.get(`/problems/${lastFeedback.problemId}`);
+        setProblem(res.data);
+      } else {
+        setProblem(lastFeedback.problem);
+      }
+
+      setAnswer(lastFeedback.answer || '');
+      setFeedback(lastFeedback.feedback || '');
+      setIsEndorsement(!!lastFeedback.isEndorsement);
+      setIsEditing(true);
+      setMessage('Editing your previous feedback...');
+    } catch (error) {
+      console.error('Failed to load problem for editing:', error);
+      setMessage('Failed to load problem for editing');
+    }
+  };
 
   return (
     <Layout>
@@ -113,6 +159,23 @@ const GiveFeedback = () => {
         {message && !problem && (
           <div className="bg-blue-50 border border-blue-200 text-blue-700 px-6 py-4 rounded-lg">
             {message}
+          </div>
+        )}
+
+        {/* edit last feedback CTA when there is something to edit */}
+        {!problem && lastFeedback && (
+          <div className="mt-4 space-y-2">
+            <div className="text-sm text-gray-600">
+              You can still edit your last feedback for problem{' '}
+              {lastFeedback.problemId}.
+            </div>
+            <button
+              type="button"
+              onClick={handleEditLastFeedback}
+              className="w-full bg-white border border-ucla-blue text-ucla-blue py-2 rounded-lg hover:bg-blue-50 font-medium"
+            >
+              Edit Last Feedback
+            </button>
           </div>
         )}
 
@@ -239,7 +302,13 @@ const GiveFeedback = () => {
                   disabled={loading}
                   className="w-full bg-ucla-blue text-white py-2 rounded-lg hover:bg-ucla-dark-blue transition-colors disabled:opacity-50 font-bold"
                 >
-                  {loading ? 'Submitting...' : 'Submit & Next'}
+                  {loading
+                    ? isEditing
+                      ? 'Updating...'
+                      : 'Submitting...'
+                    : isEditing
+                    ? 'Update Feedback'
+                    : 'Submit & Next'}
                 </button>
               </form>
             </div>
