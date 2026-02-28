@@ -188,7 +188,7 @@ const WriteProblem = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Difficulty: <span className="font-bold" style={{ color: '#2774AE' }}>{difficulty}/10</span>
+                  Difficulty: <span className="font-bold" style={{ color: '#2774AE' }}>{Where would you place this round on a 10 question exam?}/10</span>
                 </label>
                 <input
                   type="range"
