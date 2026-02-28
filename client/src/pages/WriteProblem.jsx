@@ -5,16 +5,16 @@ import api from '../utils/api';
 import Layout from '../components/Layout';
 import KatexRenderer from '../components/KatexRenderer';
 const DIFFICULTY_LABELS = {
-  1: 'Level 1 — Simple / Beginner',
-  2: 'Level 2 — Simple / Beginner',
-  3: 'Level 3 — AMC 8 / Easy AMC 10',
-  4: 'Level 4 — AMC 10 (Problems 1–10)',
-  5: 'Level 5 — AMC 10 (Problems 11–20)',
-  6: 'Level 6 — AMC 10 (Problems 21–25) / AMC 12 (Problems 1–10)',
-  7: 'Level 7 — AMC 12 (Problems 11–18)',
-  8: 'Level 8 — AMC 12 (Problems 19–22)',
-  9: 'Level 9 — AMC 12 (Problems 23–25)',
-  10: 'Level 10 — AIME Level',
+  1: 'Problem 1',
+  2: 'Problem 2',
+  3: 'Problem 3',
+  4: 'Problem 4',
+  5: 'Problem 5',
+  6: 'Problem 6',
+  7: 'Problem 7',
+  8: 'Problem 8',
+  9: 'Problem 9',
+  10: 'Problem 10',
 };
 const WriteProblem = () => {
   const [latex, setLatex] = useState('');
@@ -68,7 +68,7 @@ const WriteProblem = () => {
         answer,
         notes,
         topics,
-        quality: String(difficulty),
+        quality: String(On a 10-Question exam, where would you place this question?),
                 examType,
       });
       setMessage(`Problem ${response.data.id} created successfully!`);
