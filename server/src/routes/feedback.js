@@ -19,26 +19,20 @@ router.get('/next', authenticate, async (req, res) => {
         feedbacks: { where: { userId: req.userId } },
       },
     });
-
     // Filter out problems already reviewed by user
     const unreviewed = problems.filter((p) => p.feedbacks.length === 0);
-
     if (unreviewed.length === 0) {
       return res.json(null);
     }
-
     // Find minimum solveCount among unreviewed (treat null/undefined as 0)
     const minSolve = Math.min(...unreviewed.map((p) => p.solveCount ?? 0));
-
     // Candidates: all unreviewed problems with that minimal solveCount
     const candidates = unreviewed.filter(
       (p) => (p.solveCount ?? 0) === minSolve
     );
-
     // Randomly pick one candidate
     const randomIndex = Math.floor(Math.random() * candidates.length);
     const chosen = candidates[randomIndex];
-
     const { feedbacks, ...problem } = chosen;
     return res.json(problem);
   } catch (error) {
@@ -51,13 +45,10 @@ router.get('/next', authenticate, async (req, res) => {
 router.post('/', authenticate, async (req, res) => {
   try {
     const { problemId, answer, feedback, timeSpent, isEndorsement } = req.body;
-
     const problem = await prisma.problem.findUnique({
       where: { id: problemId }
     });
-
     if (!problem) return res.status(404).json({ error: 'Problem not found' });
-
     // Check for duplicates
     const existing = await prisma.feedback.findFirst({
       where: {
@@ -66,7 +57,6 @@ router.post('/', authenticate, async (req, res) => {
         isEndorsement: !!isEndorsement
       }
     });
-
     if (existing) {
       return res
         .status(400)
@@ -76,7 +66,6 @@ router.post('/', authenticate, async (req, res) => {
           } for this problem`,
         });
     }
-
     const newFeedback = await prisma.feedback.create({
       data: {
         problemId,
@@ -89,7 +78,6 @@ router.post('/', authenticate, async (req, res) => {
         resolved: false,
       },
     });
-
     // Update problem stats
     const updateData = {};
     if (isEndorsement) {
@@ -97,12 +85,10 @@ router.post('/', authenticate, async (req, res) => {
     } else {
       updateData.solveCount = { increment: 1 };
     }
-
     const updatedProblem = await prisma.problem.update({
       where: { id: problemId },
       data: updateData,
     });
-
     // NEW: if it has at least 1 endorsement and no pending needs review, set stage
     if (
       isEndorsement &&
@@ -114,7 +100,6 @@ router.post('/', authenticate, async (req, res) => {
         data: { stage: 'Endorsed' },
       });
     }
-
     // Task 9: Auto-promote to "Live/Ready for Review" after 3 endorsements
     if (
       isEndorsement &&
@@ -126,11 +111,52 @@ router.post('/', authenticate, async (req, res) => {
         data: { stage: 'Live/Ready for Review' },
       });
     }
-
     return res.json(newFeedback);
   } catch (error) {
     console.error('Submit feedback error:', error);
     return res.status(500).json({ error: 'Failed to submit feedback' });
+  }
+});
+
+// Edit feedback (within 15-minute window; timer resets on each edit)
+router.put('/:id', authenticate, async (req, res) => {
+  try {
+    const { answer, feedback, timeSpent } = req.body;
+
+    const existing = await prisma.feedback.findUnique({
+      where: { id: req.params.id },
+    });
+
+    if (!existing) {
+      return res.status(404).json({ error: 'Feedback not found' });
+    }
+
+    // Only the original author may edit
+    if (existing.userId !== req.userId) {
+      return res.status(403).json({ error: 'Not authorized to edit this feedback' });
+    }
+
+    // 15-minute edit window measured from the last update
+    const EDIT_WINDOW_MS = 15 * 60 * 1000;
+    const lastModified = existing.updatedAt ?? existing.createdAt;
+    const elapsed = Date.now() - new Date(lastModified).getTime();
+    if (elapsed > EDIT_WINDOW_MS) {
+      return res.status(403).json({ error: 'Edit window has expired (15 minutes)' });
+    }
+
+    const updated = await prisma.feedback.update({
+      where: { id: req.params.id },
+      data: {
+        answer: answer ?? existing.answer,
+        feedback: feedback ?? existing.feedback,
+        timeSpent: timeSpent ?? existing.timeSpent,
+      },
+    });
+
+    return res.json(updated);
+  } catch (error) {
+    console.error('Update feedback error:', error);
+    return res.status(500).json({ error: 'Failed to update feedback' });
   }
 });
 
@@ -163,17 +189,14 @@ router.put('/:id/resolve', authenticate, async (req, res) => {
       where: { id: req.params.id },
       include: { problem: true },
     });
-
     if (!fb) return res.status(404).json({ error: 'Feedback not found' });
     if (fb.problem.authorId !== req.userId) {
       return res.status(403).json({ error: 'Not authorized' });
     }
-
     const updated = await prisma.feedback.update({
       where: { id: req.params.id },
       data: { resolved: true },
     });
-
     return res.json(updated);
   } catch (error) {
     return res.status(500).json({ error: 'Failed to resolve feedback' });
