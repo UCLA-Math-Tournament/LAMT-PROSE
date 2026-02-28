@@ -29,44 +29,44 @@ model Problem {
   topics       String[]
   quality      String
   stage        String   @default("Idea")
-  examType     String   @default("Numerical Answer")
+  examType    String  @default("Numerical Answer")
   solveCount   Int      @default(0)
   unresolved   Int      @default(0)
   endorsements Int      @default(0)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
-  author       User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  feedbacks    Feedback[]
-  tests        Test[]   @relation("ProblemToTest")
+  author    User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  feedbacks Feedback[]
+  tests     Test[]     @relation("ProblemToTest")
   @@index([authorId])
   @@index([stage])
   @@index([solveCount])
   @@index([endorsements])
 }
 model Feedback {
-  id            String   @id @default(uuid())
-  problemId     String
-  userId        String
-  answer        String
-  feedback      String   @db.Text
-  resolved      Boolean  @default(false)
-  needsReview   Boolean  @default(false)
-  isEndorsement Boolean  @default(false)
-  timeSpent     Int?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  problem       Problem  @relation(fields: [problemId], references: [id], onDelete: Cascade)
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id           String   @id @default(uuid())
+  problemId    String
+  userId       String
+  answer       String
+  feedback     String   @db.Text
+  resolved     Boolean  @default(false)
+  needsReview  Boolean  @default(false)
+  isEndorsement Boolean @default(false)
+  timeSpent    Int?
+  createdAt    DateTime @default(now())
+  problem  Problem @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   @@index([problemId])
   @@index([userId])
   @@index([needsReview])
 }
 model Test {
-  id          String    @id @default(uuid())
+  id          String   @id @default(uuid())
   competition String
   name        String
   description String?
   version     String
-  createdAt   DateTime  @default(now())
+  createdAt   DateTime @default(now())
   problems    Problem[] @relation("ProblemToTest")
 }
+
