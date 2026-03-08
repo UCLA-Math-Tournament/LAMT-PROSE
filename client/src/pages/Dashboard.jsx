@@ -119,7 +119,7 @@ const Dashboard = () => {
               <tr>
                 <th className="px-4 py-3 text-left">ID</th>
                 <th className="px-4 py-3 text-left">Topics</th>
-                <th className="px-4 py-3 text-left">Quality</th>
+                <th className="px-4 py-3 text-left">Difficulty</th>
                 <th className="px-4 py-3 text-left">Stage</th>
                 <th className="px-4 py-3 text-left">Endorsed</th>
                 <th className="px-4 py-3 text-left">Tests</th>
