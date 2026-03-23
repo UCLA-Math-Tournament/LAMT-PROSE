@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../utils/AuthContext';
 
 const Login = () => {
@@ -8,6 +8,7 @@ const Login = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuth();
 
   const handleSubmit = async (e) => {
@@ -17,7 +18,9 @@ const Login = () => {
 
     try {
       await login(email, password);
-      navigate('/home');
+      // Redirect to the intended page or dashboard
+      const from = location.state?.from?.pathname || '/inventory';
+      navigate(from, { replace: true });
     } catch (err) {
       setError(err.response?.data?.error || 'Login failed');
     } finally {
@@ -31,34 +34,36 @@ const Login = () => {
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-ucla-blue">Los Angeles Math Tournament's PROSE System</h1>
           <p className="text-gray-600 mt-2">Problem Review and Online Submission Engine</p>
-          <p className="text-gray-600 mt-2">Sign in to your account here!</p>
+          <p className="text-gray-600 mt-2 font-medium">Sign in to your account here!</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm font-medium">
               {error}
             </div>
           )}
+          
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-bold text-gray-700 mb-1">
               UCLA Email
             </label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ucla-blue focus:border-transparent"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ucla-blue focus:border-transparent outline-none transition-all"
               placeholder="yourname@ucla.edu"
               required
             />
           </div>
+
           <div>
             <div className="flex justify-between items-center mb-1">
-              <label className="block text-sm font-medium text-gray-700">
+              <label className="block text-sm font-bold text-gray-700">
                 Password
               </label>
-              <Link to="/forgot-password" className="text-sm text-ucla-blue hover:underline">
+              <Link to="/forgot-password" size="sm" className="text-sm text-ucla-blue hover:underline font-medium">
                 Forgot password?
               </Link>
             </div>
@@ -66,23 +71,28 @@ const Login = () => {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ucla-blue focus:border-transparent"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ucla-blue focus:border-transparent outline-none transition-all"
+              placeholder="••••••••"
               required
             />
           </div>
+
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-ucla-blue text-white py-2 rounded-lg hover:bg-ucla-dark-blue transition-colors disabled:opacity-50"
+            className={`w-full py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-bold text-white bg-ucla-blue hover:bg-ucla-dark-blue focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ucla-blue transition-all ${
+              loading ? 'opacity-70 cursor-not-allowed' : ''
+            }`}
           >
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
+
         <div className="mt-6 text-center">
-          <p className="text-gray-600">
+          <p className="text-sm text-gray-600">
             Don't have an account?{' '}
-            <Link to="/register" className="text-ucla-blue hover:underline">
-              Register
+            <Link to="/register" className="text-ucla-blue hover:underline font-bold">
+              Register here
             </Link>
           </p>
         </div>
