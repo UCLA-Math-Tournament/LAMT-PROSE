@@ -58,6 +58,7 @@ function App() {
           <Route path="/feedback/:problemId" element={<PrivateRoute><GiveFeedback /></PrivateRoute>} />
           <Route path="/tests" element={<PrivateRoute><ViewTests /></PrivateRoute>} />
           <Route path="/endorsements" element={<PrivateRoute><QuestionsToEndorse /></PrivateRoute>} />
+          <Route path="/users/:id" element={<PrivateRoute><UserProfile /></PrivateRoute>} />
           <Route path="/profile" element={<PrivateRoute><UserProfile /></PrivateRoute>} />
 
           <Route path="/" element={<Navigate to="/home" />} />
