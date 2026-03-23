@@ -83,7 +83,7 @@ router.get('/my-feedback', authenticate, async (req, res) => {
       include: {
         problem: { select: { id: true, latex: true, stage: true } },
       },
-      orderBy: { updatedAt: 'desc' },
+      orderBy: { createdAt: 'desc' },
     });
     const result = feedbacks.map((f) => ({
       id: f.id,
@@ -92,7 +92,7 @@ router.get('/my-feedback', authenticate, async (req, res) => {
       resolved: f.resolved,
       isEndorsement: f.isEndorsement,
       comment: f.feedback,
-      updatedAt: f.updatedAt,
+      createdAt: f.createdAt,
     }));
     return res.json(result);
   } catch (error) {
