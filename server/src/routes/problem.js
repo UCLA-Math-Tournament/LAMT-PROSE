@@ -63,7 +63,6 @@ router.get('/', authenticate, async (req, res) => {
     const isAdmin = currentUser?.isAdmin || ADMIN_EMAILS.includes(currentUser?.email);
     const where = {};
     if (reviewable === 'true') {
-      // Exclude archived/final stages
       where.stage = { notIn: ['On Test', 'Approved for Exam', 'Published'] };
       where.authorId = { not: req.userId };
     } else {
@@ -89,7 +88,6 @@ router.get('/', authenticate, async (req, res) => {
     const result = problems.map((p) => {
       const pData = { ...p };
       const isAuthor = p.authorId === req.userId;
-      // Admins see everything; non-admins: hide answer from non-authors, hide notes from non-authors
       if (!isAdmin) delete pData.answer;
       if (!isAdmin && !isAuthor) {
         delete pData.notes;
@@ -98,6 +96,7 @@ router.get('/', authenticate, async (req, res) => {
       pData._displayStatus = computeDisplayStatus(p);
       pData._isAdmin = isAdmin;
       pData._isAuthor = isAuthor;
+      pData._userId = req.userId;
       return pData;
     });
     res.json(result);
@@ -121,6 +120,7 @@ router.get('/my', authenticate, async (req, res) => {
       ...p,
       _displayStatus: computeDisplayStatus(p),
       _isAuthor: true,
+      _userId: req.userId,
     }));
     res.json(result);
   } catch (error) {
@@ -149,7 +149,6 @@ router.get('/:id', authenticate, async (req, res) => {
     const isAuthor = problem.authorId === req.userId;
     const isAdmin = currentUser?.isAdmin || ADMIN_EMAILS.includes(currentUser?.email);
     const result = { ...problem };
-    // Admins see everything
     if (!isAdmin) delete result.answer;
     if (!isAdmin && !isAuthor) {
       delete result.notes;
@@ -158,6 +157,7 @@ router.get('/:id', authenticate, async (req, res) => {
     result._isAuthor = isAuthor;
     result._isAdmin = isAdmin;
     result._displayStatus = computeDisplayStatus(problem);
+    result._userId = req.userId;
     res.json(result);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch problem', details: error.message });
