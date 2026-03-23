@@ -1,8 +1,8 @@
 import { useState, createContext, useContext } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../utils/AuthContext';
-import { 
-  Home, LayoutDashboard, PenTool, List, Trophy, 
+import {
+  Home, LayoutDashboard, PenTool, List, Trophy,
   MessageSquare, FileText, LogOut, Menu, X, Moon, Sun, Star
 } from 'lucide-react';
 
@@ -41,7 +41,6 @@ const Sidebar = ({ dark, toggleDark }) => {
     { to: '/leaderboard', icon: Trophy, label: 'Leaderboard' },
     { to: '/feedback', icon: MessageSquare, label: 'Give Feedback' },
     { to: '/tests', icon: FileText, label: 'View Tests' },
-    { to: '/questions-to-endorse', icon: Star, label: 'Questions to Approve' },
   ];
 
   return (
@@ -67,6 +66,7 @@ const Sidebar = ({ dark, toggleDark }) => {
           {collapsed ? <Menu size={20} /> : <X size={20} />}
         </button>
       </div>
+
       <nav className="mt-4 flex-1 overflow-y-auto">
         {links.map(link => {
           const Icon = link.icon;
@@ -94,6 +94,7 @@ const Sidebar = ({ dark, toggleDark }) => {
           );
         })}
       </nav>
+
       <div className="p-2 flex-shrink-0">
         <button
           onClick={toggleDark}
@@ -148,4 +149,3 @@ const Layout = ({ children }) => {
 };
 
 export default Layout;
-
