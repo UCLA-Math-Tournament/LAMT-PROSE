@@ -182,7 +182,7 @@ const ProblemDetail = () => {
           {isEditing ? (
             <div className="space-y-4">
               <textarea value={editedLatex} onChange={(e) => setEditedLatex(e.target.value)} rows={8} className="w-full px-4 py-2 border border-gray-300 rounded-lg font-mono text-sm" />
-              <div className="grid grid-cols-2 gap-4">
+              <div>                   <label className="block text-sm font-medium mb-1">Writer's Solution</label>                   <textarea value={editedSolution} onChange={(e) => setEditedSolution(e.target.value)} rows={6} className="w-full px-4 py-2 border border-gray-300 rounded-lg font-mono text-sm" />                 </div>                 <div>                   <label className="block text-sm font-medium mb-1">Final Answer</label>                   <input type="text" value={editedAnswer} onChange={(e) => setEditedAnswer(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded-lg" />                 </div>                 <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-1">Difficulty (1-10)</label>
                   <input type="number" min="1" max="10" value={editedDifficulty} onChange={(e) => setEditedDifficulty(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded-lg" />
@@ -199,7 +199,7 @@ const ProblemDetail = () => {
           ) : (
             <div className="prose max-w-none">
               <KatexRenderer latex={problem.latex} />
-              <div className="mt-4 flex gap-2">
+              <div className="mt-4 flex gap-2 items-center">                   {problem.quality && <span className="px-2 py-0.5 bg-blue-100 text-blue-800 text-xs font-semibold rounded">Difficulty: {problem.quality}/10</span>}
                 {problem.topics.map(t => <span key={t} className="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded">{t}</span>)}
                 <span className="ml-auto text-sm text-gray-500 flex items-center gap-1"><Clock size={16} /> {new Date(problem.createdAt).toLocaleDateString()}</span>
               </div>
