@@ -413,7 +413,8 @@ const ProblemDetail = () => {
                   )}
 
                   {resolvingId === fb.id && (
-                    <div className="mt-6 p-5 bg-white border border-red-100 rounded-xl shadow-sm">
+                                      {fb.answer && <p className="text-sm font-semibold text-gray-800 mt-3 bg-blue-50 px-3 py-2 rounded-lg border border-blue-100"><span className="text-gray-600 font-medium">Reviewer's answer:</span> {fb.answer}</p>}
+<div className="mt-6 p-5 bg-white border border-red-100 rounded-xl shadow-sm">
                       <label className="block text-xs font-bold text-gray-500 uppercase mb-2 tracking-wider">Resolution Comment <span className="text-red-500">*</span></label>
                       <textarea 
                         value={resolveComment}
