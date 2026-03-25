@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Image as ImageIcon, X } from 'lucide-react';
+import { Image as ImageIcon, X, ArrowRightLeft } from 'lucide-react';
 import api from '../utils/api';
 import Layout from '../components/Layout';
 import KatexRenderer from '../components/KatexRenderer';
@@ -26,6 +26,7 @@ const WriteProblem = () => {
   const [topics, setTopics] = useState([]);
   const [difficulty, setDifficulty] = useState(5);
   const [examType, setExamType] = useState('Numerical Answer');
+  // Images are now objects: { dataUrl: string, destination: 'problem' | 'solution' }
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -46,7 +47,8 @@ const WriteProblem = () => {
     files.forEach(file => {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setImages(prev => [...prev, reader.result]);
+        // Default new images to the problem statement
+        setImages(prev => [...prev, { dataUrl: reader.result, destination: 'problem' }]);
       };
       reader.readAsDataURL(file);
     });
@@ -54,6 +56,14 @@ const WriteProblem = () => {
 
   const removeImage = (index) => {
     setImages(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const toggleImageDestination = (index) => {
+    setImages(prev => prev.map((img, i) => 
+      i === index 
+        ? { ...img, destination: img.destination === 'problem' ? 'solution' : 'problem' }
+        : img
+    ));
   };
 
   const handleSubmit = async (e) => {
@@ -68,14 +78,23 @@ const WriteProblem = () => {
 
     try {
       let finalLatex = latex;
-      if (images.length > 0) {
-        // Fix: Use \n for newlines instead of physical line breaks inside single quotes
-        finalLatex += '\n' + images.map((img, i) => `![Image ${i+1}](${img})`).join('\n');
+      let finalSolution = solution;
+
+      // Separate images by destination
+      const problemImages = images.filter(img => img.destination === 'problem');
+      const solutionImages = images.filter(img => img.destination === 'solution');
+
+      if (problemImages.length > 0) {
+        finalLatex += '\n\n' + problemImages.map((img, i) => `![Problem Image ${i+1}](${img.dataUrl})`).join('\n');
+      }
+      
+      if (solutionImages.length > 0) {
+        finalSolution += '\n\n' + solutionImages.map((img, i) => `![Solution Image ${i+1}](${img.dataUrl})`).join('\n');
       }
 
       const response = await api.post('/problems', {
         latex: finalLatex,
-        solution,
+        solution: finalSolution,
         answer,
         notes,
         topics,
@@ -124,20 +143,34 @@ const WriteProblem = () => {
                 </label>
                 <div className="flex flex-wrap gap-4 mt-2">
                   {images.map((img, idx) => (
-                    <div key={idx} className="relative w-20 h-20 border rounded-lg overflow-hidden group">
-                      <img src={img} alt="upload preview" className="w-full h-full object-cover" />
+                    <div key={idx} className="relative w-24 h-28 border border-gray-200 rounded-lg overflow-hidden group flex flex-col shadow-sm">
+                      <div className="h-20 w-full overflow-hidden bg-gray-50">
+                        <img src={img.dataUrl} alt="upload preview" className="w-full h-full object-contain" />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => toggleImageDestination(idx)}
+                        className={`flex-1 flex items-center justify-center text-[10px] font-bold uppercase tracking-wide transition-colors ${
+                          img.destination === 'problem' 
+                            ? 'bg-blue-100 text-ucla-blue hover:bg-blue-200' 
+                            : 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+                        }`}
+                        title="Click to move image"
+                      >
+                        {img.destination} <ArrowRightLeft size={10} className="ml-1 opacity-50" />
+                      </button>
                       <button
                         type="button"
                         onClick={() => removeImage(idx)}
-                        className="absolute top-0 right-0 bg-red-500 text-white p-0.5 rounded-bl-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="absolute top-0 right-0 bg-red-500 text-white p-1 rounded-bl-lg opacity-0 group-hover:opacity-100 transition-opacity"
                       >
                         <X size={14} />
                       </button>
                     </div>
                   ))}
-                  <label className="w-20 h-20 flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-400 transition-colors">
+                  <label className="w-24 h-28 flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-400 transition-colors bg-gray-50">
                     <ImageIcon size={24} className="text-gray-400" />
-                    <span className="text-[10px] text-gray-400 mt-1">Upload</span>
+                    <span className="text-[10px] text-gray-400 mt-2 font-medium uppercase tracking-wide">Upload</span>
                     <input
                       type="file"
                       className="hidden"
@@ -286,10 +319,10 @@ const WriteProblem = () => {
                 ) : (
                   <p className="text-gray-400 text-center">Problem preview will appear here...</p>
                 )}
-                {images.length > 0 && (
-                  <div className="grid grid-cols-2 gap-4 mt-4">
-                    {images.map((img, i) => (
-                      <img key={i} src={img} alt="attachment" className="rounded border w-full h-auto" />
+                {images.filter(img => img.destination === 'problem').length > 0 && (
+                  <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-gray-100">
+                    {images.filter(img => img.destination === 'problem').map((img, i) => (
+                      <img key={i} src={img.dataUrl} alt="problem attachment" className="rounded border w-full h-auto" />
                     ))}
                   </div>
                 )}
@@ -303,6 +336,13 @@ const WriteProblem = () => {
                   <KatexRenderer latex={solution} />
                 ) : (
                   <p className="text-gray-400 text-center">Solution preview will appear here...</p>
+                )}
+                {images.filter(img => img.destination === 'solution').length > 0 && (
+                  <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-gray-100">
+                    {images.filter(img => img.destination === 'solution').map((img, i) => (
+                      <img key={i} src={img.dataUrl} alt="solution attachment" className="rounded border w-full h-auto" />
+                    ))}
+                  </div>
                 )}
               </div>
             </div>
@@ -323,7 +363,6 @@ const WriteProblem = () => {
                   <p className="text-gray-600 mt-0.5">Individual numerical-answer problems organized by topic (Algebra, Geometry, Discrete, etc.). Aim to cover a range of difficulties (Levels 3–9) and clearly fit one topic area.</p>
                 </div>
                 <div className="border-l-4 border-yellow-400 pl-4 py-1">
-                  {/* Fix: Cleaned up the escaped quotes in className */}
                   <p className="font-semibold text-gray-800">Special Round <span className="text-xs font-normal text-yellow-600">(Shopping Round)</span></p>
                   <p className="text-gray-600 mt-0.5">Contestants choose problems from a “shopping list” of available questions, then solve the ones they pick. Write self-contained numerical-answer problems that work well as standalone choices. Any topic, Levels 3–9.</p>
                 </div>
