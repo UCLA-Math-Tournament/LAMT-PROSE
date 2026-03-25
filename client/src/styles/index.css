@@ -4,14 +4,56 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  background-color: #f4f0ff;
+@layer base {
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+      'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+      sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /* Converted your hardcoded hex to a Tailwind apply so dark mode can override it */
+    @apply bg-[#f4f0ff] text-gray-900 dark:bg-gray-900 dark:text-gray-100;
+  }
+
+  /* --- THE GLOBAL DARK MODE FIX --- */
+  
+  /* 1. Force white cards to become dark gray */
+  .dark .bg-white {
+    @apply bg-gray-800 border-gray-700 !important;
+  }
+
+  /* 2. Force light gray backgrounds (like table headers or secondary cards) to go darker */
+  .dark .bg-gray-50,
+  .dark .bg-gray-100,
+  .dark .bg-slate-50 {
+    @apply bg-gray-900 border-gray-700 !important;
+  }
+
+  /* 3. Force dark text to become light gray so you can actually read it */
+  .dark .text-gray-500,
+  .dark .text-gray-600,
+  .dark .text-gray-700,
+  .dark .text-gray-800,
+  .dark .text-gray-900,
+  .dark .text-black {
+    @apply text-gray-200 !important;
+  }
+
+  /* 4. Soften bright borders */
+  .dark .border-gray-100,
+  .dark .border-gray-200,
+  .dark .border-gray-300 {
+    @apply border-gray-700 !important;
+  }
+
+  /* 5. Fix table headers specifically, as they often have weird default backgrounds */
+  .dark th {
+    @apply bg-gray-900 text-gray-300 border-gray-700 !important;
+  }
+  .dark td {
+    @apply border-gray-700 !important;
+  }
 }
 
 code {
