@@ -62,7 +62,7 @@ const GiveFeedback = () => {
 
   const loadSpecificProblem = async (id) => {
     try {
-      const res = await api.get(`/problems/${id}`);
+const res = await api.get(`/feedback/${id}`);
       setProblem(res.data);
       setAnswer('');
       setFeedback('');
