@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Edit, Clock, User, Trash2, Star, ChevronDown, ChevronUp, CheckCircle } from 'lucide-react';
+import { Edit, Clock, User, Trash2, Star, ChevronDown, ChevronUp, CheckCircle, Image as ImageIcon, X, ArrowRightLeft } from 'lucide-react';
 import api from '../utils/api';
 import Layout from '../components/Layout';
 import KatexRenderer from '../components/KatexRenderer';
@@ -23,6 +23,7 @@ const ProblemDetail = () => {
   const [editedTopics, setEditedTopics] = useState([]);
   const [editedDifficulty, setEditedDifficulty] = useState(5);
   const [editedStage, setEditedStage] = useState('');
+  const [editedImages, setEditedImages] = useState([]); // Array of { dataUrl, destination }
 
   // UI toggles
   const [showSolution, setShowSolution] = useState(false);
@@ -30,6 +31,20 @@ const ProblemDetail = () => {
   const [resolveComment, setResolveComment] = useState('');
   const [editingFeedbackId, setEditingFeedbackId] = useState(null);
   const [editedFeedbackComment, setEditedFeedbackComment] = useState('');
+
+  // Helper to extract base64 markdown images from text to populate the UI editor
+  const extractImages = (text, destination) => {
+    if (!text) return { cleanText: '', extractedImages: [] };
+    const images = [];
+    const regex = /!\[(.*?)\]\((data:image\/[^;]+;base64,[^\)]+)\)/g;
+    
+    let cleanText = text.replace(regex, (match, alt, dataUrl) => {
+      images.push({ dataUrl, destination });
+      return ''; // remove from the text editor view
+    });
+    
+    return { cleanText: cleanText.trim(), extractedImages: images };
+  };
 
   useEffect(() => {
     fetchProblem();
@@ -41,13 +56,20 @@ const ProblemDetail = () => {
       const data = response.data;
       setProblem(data);
       setFeedbacks(data.feedbacks || []);
-      setEditedLatex(data.latex);
-      setEditedSolution(data.solution || '');
+      
+      // Extract images from backend markdown strings so the text editors stay clean
+      const { cleanText: cleanLatex, extractedImages: latexImages } = extractImages(data.latex, 'problem');
+      const { cleanText: cleanSolution, extractedImages: solImages } = extractImages(data.solution, 'solution');
+
+      setEditedLatex(cleanLatex);
+      setEditedSolution(cleanSolution);
+      setEditedImages([...latexImages, ...solImages]);
+      
       setEditedAnswer(data.answer || '');
       setEditedNotes(data.notes || '');
-      setEditedTopics(data.topics);
+      setEditedTopics(data.topics || []);
       setEditedStage(data.stage);
-      setEditedDifficulty(parseInt(data.quality));
+      setEditedDifficulty(parseInt(data.quality) || 5);
     } catch (error) {
       setMessage('Failed to load problem');
     } finally {
@@ -55,11 +77,48 @@ const ProblemDetail = () => {
     }
   };
 
+  const handleImageUpload = (e) => {
+    const files = Array.from(e.target.files);
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setEditedImages(prev => [...prev, { dataUrl: reader.result, destination: 'problem' }]);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const removeImage = (index) => {
+    setEditedImages(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const toggleImageDestination = (index) => {
+    setEditedImages(prev => prev.map((img, i) => 
+      i === index 
+        ? { ...img, destination: img.destination === 'problem' ? 'solution' : 'problem' }
+        : img
+    ));
+  };
+
   const handleSave = async () => {
     try {
+      let finalLatex = editedLatex;
+      let finalSolution = editedSolution;
+
+      // Re-attach the base64 images to the markdown
+      const problemImages = editedImages.filter(img => img.destination === 'problem');
+      const solutionImages = editedImages.filter(img => img.destination === 'solution');
+
+      if (problemImages.length > 0) {
+        finalLatex += '\n\n' + problemImages.map((img, i) => `![Problem Image ${i+1}](${img.dataUrl})`).join('\n');
+      }
+      if (solutionImages.length > 0) {
+        finalSolution += '\n\n' + solutionImages.map((img, i) => `![Solution Image ${i+1}](${img.dataUrl})`).join('\n');
+      }
+
       await api.put(`/problems/${id}`, {
-        latex: editedLatex,
-        solution: editedSolution,
+        latex: finalLatex,
+        solution: finalSolution,
         answer: editedAnswer,
         notes: editedNotes,
         topics: editedTopics,
@@ -68,7 +127,7 @@ const ProblemDetail = () => {
       });
       setMessage('Problem updated successfully!');
       setIsEditing(false);
-      fetchProblem();
+      fetchProblem(); // Re-fetch to update the view state
     } catch (error) {
       setMessage('Failed to update problem');
     }
@@ -84,12 +143,13 @@ const ProblemDetail = () => {
     }
   };
 
-  const handle = async () => {
+  // Fixed minor typos in the endorsement handler
+  const handleEndorse = async () => {
     try {
       await api.post('/feedback', {
         problemId: id,
-        isment: true,
-        feedback: 'Problem d.'
+        isEndorsement: true,
+        feedback: 'Problem endorsed.'
       });
       setMessage('Problem endorsed successfully!');
       fetchProblem();
@@ -180,6 +240,12 @@ const ProblemDetail = () => {
                 </button>
               </>
             )}
+            {/* Added Endorse button rendering if permitted */}
+            {canEndorse && !isEditing && (
+              <button onClick={handleEndorse} className="flex items-center gap-2 px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 shadow-sm font-bold transition-all">
+                <Star size={18} /> Endorse
+              </button>
+            )}
           </div>
         </div>
 
@@ -201,6 +267,52 @@ const ProblemDetail = () => {
                   rows={8}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg font-mono text-sm focus:ring-2 focus:ring-ucla-blue outline-none"
                 />
+              </div>
+
+              {/* Added Image Uploader Block here */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Attachments / Images
+                </label>
+                <div className="flex flex-wrap gap-4 mt-2">
+                  {editedImages.map((img, idx) => (
+                    <div key={idx} className="relative w-24 h-28 border border-gray-200 rounded-lg overflow-hidden group flex flex-col shadow-sm">
+                      <div className="h-20 w-full overflow-hidden bg-gray-50">
+                        <img src={img.dataUrl} alt="upload preview" className="w-full h-full object-contain" />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => toggleImageDestination(idx)}
+                        className={`flex-1 flex items-center justify-center text-[10px] font-bold uppercase tracking-wide transition-colors ${
+                          img.destination === 'problem' 
+                            ? 'bg-blue-100 text-ucla-blue hover:bg-blue-200' 
+                            : 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+                        }`}
+                        title="Click to move image"
+                      >
+                        {img.destination} <ArrowRightLeft size={10} className="ml-1 opacity-50" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeImage(idx)}
+                        className="absolute top-0 right-0 bg-red-500 text-white p-1 rounded-bl-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ))}
+                  <label className="w-24 h-28 flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-400 transition-colors bg-gray-50">
+                    <ImageIcon size={24} className="text-gray-400" />
+                    <span className="text-[10px] text-gray-400 mt-2 font-medium uppercase tracking-wide">Upload</span>
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept="image/*"
+                      multiple
+                      onChange={handleImageUpload}
+                    />
+                  </label>
+                </div>
               </div>
               
               <div>
@@ -270,7 +382,6 @@ const ProblemDetail = () => {
                 <KatexRenderer latex={problem.latex} />
               </div>
               <div className="mt-6 flex flex-wrap gap-2 items-center">
-                {/* Fix: Safely checking quality to ensure '0' or string versions of '0' render correctly */}
                 {(problem.quality !== undefined && problem.quality !== null) && (
                   <span className="px-3 py-1 bg-blue-100 text-ucla-blue text-xs font-bold rounded-full border border-blue-200">
                     Difficulty: {problem.quality}/10
@@ -405,7 +516,6 @@ const ProblemDetail = () => {
                   ) : (
                     <div className="mt-3">
                       <p className="text-gray-700 text-sm whitespace-pre-wrap leading-relaxed">{fb.feedback}</p>
-                      {/* Fix: Extracted reviewer answer from the resolving condition so it is always visible */}
                       {fb.answer && (
                         <p className="text-sm font-semibold text-gray-800 mt-3 bg-blue-50 px-3 py-2 rounded-lg border border-blue-100">
                           <span className="text-gray-600 font-medium">Reviewer's answer:</span> {fb.answer}
@@ -414,7 +524,6 @@ const ProblemDetail = () => {
                     </div>
                   )}
 
-                  {/* Fix: Cleaned up the structural nesting for the resolution form */}
                   {resolvingId === fb.id && (
                     <div className="mt-6 p-5 bg-white border border-red-100 rounded-xl shadow-sm">
                       <label className="block text-xs font-bold text-gray-500 uppercase mb-2 tracking-wider">
