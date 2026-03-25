@@ -58,9 +58,11 @@ const Sidebar = ({ dark, toggleDark }) => {
       className={`h-screen text-white transition-all duration-300 flex flex-col ${
         collapsed ? 'w-16' : 'w-64'
       } bg-ucla-blue`} 
-      /* Swapped inline style to use your custom Tailwind color */
     >
-      <div className="p-4 flex items-center justify-between flex-shrink-0">
+      {/* 1. Header: Use conditional justify-center when collapsed */}
+      <div className={`p-4 flex items-center flex-shrink-0 ${
+        collapsed ? 'justify-center' : 'justify-between'
+      }`}>
         {!collapsed && (
           <h1 className="text-xl font-bold tracking-wide text-ucla-gold">
             LAMT PROSE
@@ -68,7 +70,7 @@ const Sidebar = ({ dark, toggleDark }) => {
         )}
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="p-2 rounded transition-colors hover:bg-ucla-dark-blue"
+          className="p-2 rounded transition-colors hover:bg-ucla-dark-blue flex-shrink-0"
         >
           {collapsed ? <Menu size={20} /> : <X size={20} />}
         </button>
@@ -83,10 +85,13 @@ const Sidebar = ({ dark, toggleDark }) => {
             <Link
               key={link.to}
               to={link.to}
-              className={`flex items-center px-4 py-3 transition-colors ${
+              /* 2. Nav Links: Conditionally apply padding and justification */
+              className={`flex items-center py-3 transition-colors ${
+                collapsed ? 'justify-center px-0' : 'px-4'
+              } ${
                 isActive
-                  ? 'border-l-4 bg-ucla-dark-blue border-ucla-gold' // Converted to Tailwind classes
-                  : 'hover:bg-ucla-dark-blue' // Replaced generic blue-600 with your UCLA theme
+                  ? 'border-l-4 bg-ucla-dark-blue border-ucla-gold'
+                  : 'hover:bg-ucla-dark-blue'
               }`}
             >
               <Icon
@@ -104,7 +109,10 @@ const Sidebar = ({ dark, toggleDark }) => {
       <div className="p-2 flex-shrink-0">
         <button
           onClick={toggleDark}
-          className="flex items-center w-full px-4 py-3 hover:bg-ucla-dark-blue transition-colors rounded"
+          /* 3. Bottom Buttons: Conditionally apply padding and justification */
+          className={`flex items-center w-full py-3 hover:bg-ucla-dark-blue transition-colors rounded ${
+            collapsed ? 'justify-center px-0' : 'px-4'
+          }`}
           title={dark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
         >
           {dark ? <Sun size={20} /> : <Moon size={20} />}
@@ -116,7 +124,10 @@ const Sidebar = ({ dark, toggleDark }) => {
         </button>
         <button
           onClick={handleLogout}
-          className="flex items-center w-full px-4 py-3 hover:bg-red-600 transition-colors rounded"
+          className={`flex items-center w-full py-3 hover:bg-red-600 transition-colors rounded mt-1 ${
+            collapsed ? 'justify-center px-0' : 'px-4'
+          }`}
+          title="Sign Out"
         >
           <LogOut size={20} />
           {!collapsed && (
@@ -127,7 +138,6 @@ const Sidebar = ({ dark, toggleDark }) => {
     </div>
   );
 };
-
 const Layout = ({ children }) => {
   const [dark, toggleDark] = useDarkMode();
 
