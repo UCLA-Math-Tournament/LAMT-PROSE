@@ -1,3 +1,4 @@
+import { Star, LayoutDashboard, MessageSquare, Trash2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { Star, LayoutDashboard, MessageSquare } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -40,6 +41,30 @@ const Dashboard = () => {
     }
   };
 
+const handleDeleteFeedback = async (e, feedbackId) => {
+    // Stop the click from triggering the navigate() on the parent div
+    e.stopPropagation(); 
+    
+    // Always double-check before deleting!
+    if (!window.confirm("Are you sure you want to remove this feedback/endorsement?")) return;
+
+    try {
+      await api.delete(`/feedback/${feedbackId}`);
+      
+      // Update the UI immediately by removing the deleted item
+      setMyFeedback(prev => prev.filter(fb => fb.id !== feedbackId));
+      
+      // Re-fetch the stats just in case their endorsement count changed
+      const statsRes = await api.get('/stats/dashboard');
+      setStats(statsRes.data);
+      
+    } catch (error) {
+      console.error('Failed to delete feedback', error);
+      alert("Failed to delete feedback. Please try again.");
+    }
+  };
+
+  
   const filteredProblems = filter === 'all'
     ? problems
     : problems.filter((p) => p._displayStatus === filter || p.stage === filter);
