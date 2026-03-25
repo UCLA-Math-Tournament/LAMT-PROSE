@@ -84,12 +84,12 @@ const ProblemDetail = () => {
     }
   };
 
-  const handleEndorse = async () => {
+  const handle = async () => {
     try {
       await api.post('/feedback', {
         problemId: id,
-        isEndorsement: true,
-        feedback: 'Problem endorsed.'
+        isment: true,
+        feedback: 'Problem d.'
       });
       setMessage('Problem endorsed successfully!');
       fetchProblem();
@@ -170,11 +170,6 @@ const ProblemDetail = () => {
           </div>
           
           <div className="flex gap-2">
-            {canEndorse && (
-              <button onClick={handleEndorse} className="flex items-center gap-2 px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 shadow-sm font-bold transition-all">
-                <Star size={18} fill="white" /> Endorse
-              </button>
-            )}
             {canEdit && (
               <>
                 <button onClick={() => setIsEditing(!isEditing)} className="flex items-center gap-2 px-4 py-2 bg-ucla-blue text-white rounded-lg hover:bg-ucla-dark-blue shadow-sm font-bold transition-all">
