@@ -1,6 +1,5 @@
 import { Star, LayoutDashboard, MessageSquare, Trash2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { Star, LayoutDashboard, MessageSquare } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import Layout from '../components/Layout';
