@@ -180,14 +180,25 @@ const handleDeleteFeedback = async (e, feedbackId) => {
                   onClick={() => navigate(`/problem/${fb.problemId}`)}
                   className="cursor-pointer border-l-4 border-gray-200 pl-3 py-2 mb-3 hover:border-ucla-blue transition-colors"
                 >
-                  <div className="flex justify-between items-center">
-                    <span className="font-mono text-sm font-bold">{fb.problemId}</span>
-                    <span className={`text-xs px-2 py-0.5 rounded ${
-                      fb.resolved ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                    }`}>
-                      {fb.resolved ? 'Resolved' : 'Unresolved'}
-                    </span>
-                  </div>
+<div className="flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-sm font-bold">{fb.problemId}</span>
+              <span className={`text-xs px-2 py-0.5 rounded ${
+                fb.resolved ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+              }`}>
+                {fb.resolved ? 'Resolved' : 'Unresolved'}
+              </span>
+            </div>
+            
+            {/* NEW: The Delete Button */}
+            <button 
+              onClick={(e) => handleDeleteFeedback(e, fb.id)}
+              className="text-gray-400 hover:text-red-500 transition-colors p-1"
+              title="Remove Feedback"
+            >
+              <Trash2 size={16} />
+            </button>
+          </div>
                   {fb.answer && <p className="text-xs text-gray-600 mt-1"><span className="font-semibold">Your answer:</span> {fb.answer}</p>}
                   {fb.comment && <p className="text-xs text-gray-500 mt-1 truncate">"{fb.comment}"</p>}
                   <p className="text-xs text-gray-400 mt-1">{fb.createdAt ? new Date(fb.createdAt).toLocaleDateString() : ''}</p>
