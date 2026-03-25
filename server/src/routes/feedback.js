@@ -492,7 +492,70 @@ router.put('/:id/resolve', authenticate, async (req, res) => {
 
 });
 
+// DELETE /feedback/:id — remove feedback or endorsement (creator or admin)
+router.delete('/:id', authenticate, async (req, res) => {
+  try {
+    const currentUser = await prisma.user.findUnique({
+      where: { id: req.userId },
+      select: { isAdmin: true, email: true },
+    });
+    const isAdmin = currentUser?.isAdmin || ADMIN_EMAILS.includes(currentUser?.email);
 
+    // Find the feedback and the associated problem
+    const fb = await prisma.feedback.findUnique({
+      where: { id: req.params.id },
+      include: { problem: true },
+    });
+
+    if (!fb) return res.status(404).json({ error: 'Feedback not found' });
+
+    // Ensure only the person who wrote the feedback (or an admin) can delete it
+    if (fb.userId !== req.userId && !isAdmin) {
+      return res.status(403).json({ error: 'Not authorized to delete this feedback' });
+    }
+
+    const problemId = fb.problemId;
+    const problem = fb.problem;
+
+    // 1. Delete the feedback entry from the database
+    await prisma.feedback.delete({
+      where: { id: req.params.id },
+    });
+
+    // 2. Prepare to reverse the counters
+    const updateData = {};
+    if (fb.isEndorsement) {
+      // Prevent going below 0
+      updateData.endorsements = Math.max(0, problem.endorsements - 1); 
+    } else {
+      updateData.solveCount = Math.max(0, (problem.solveCount || 1) - 1);
+    }
+
+    // 3. Roll back the problem stage if necessary
+    if (fb.isEndorsement) {
+      const newEndorsementCount = problem.endorsements - 1;
+      // If it drops to 0 and was 'Endorsed', bump it back down to 'Idea'
+      if (newEndorsementCount === 0 && problem.stage === 'Endorsed') {
+        updateData.stage = 'Idea';
+      } 
+      // If it drops to 2 and was marked 'Live/Ready for Review', bump down to 'Review'
+      else if (newEndorsementCount === 2 && problem.stage === 'Live/Ready for Review') {
+        updateData.stage = 'Review';
+      }
+    }
+
+    // 4. Update the problem with the reversed stats
+    await prisma.problem.update({
+      where: { id: problemId },
+      data: updateData,
+    });
+
+    return res.json({ message: 'Feedback successfully removed' });
+  } catch (error) {
+    console.error('Delete feedback error:', error);
+    return res.status(500).json({ error: 'Failed to delete feedback' });
+  }
+});
 
 export default router;
 
