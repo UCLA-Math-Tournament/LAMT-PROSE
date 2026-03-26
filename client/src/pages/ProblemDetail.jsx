@@ -40,7 +40,7 @@ const ProblemDetail = () => {
     
     let cleanText = text.replace(regex, (match, alt, dataUrl) => {
       images.push({ dataUrl, destination });
-      return ''; // remove from the text editor view
+      return '';
     });
     
     return { cleanText: cleanText.trim(), extractedImages: images };
@@ -57,7 +57,6 @@ const ProblemDetail = () => {
       setProblem(data);
       setFeedbacks(data.feedbacks || []);
       
-      // Extract images from backend markdown strings so the text editors stay clean
       const { cleanText: cleanLatex, extractedImages: latexImages } = extractImages(data.latex, 'problem');
       const { cleanText: cleanSolution, extractedImages: solImages } = extractImages(data.solution, 'solution');
 
@@ -105,7 +104,6 @@ const ProblemDetail = () => {
       let finalLatex = editedLatex;
       let finalSolution = editedSolution;
 
-      // Re-attach the base64 images to the markdown
       const problemImages = editedImages.filter(img => img.destination === 'problem');
       const solutionImages = editedImages.filter(img => img.destination === 'solution');
 
@@ -127,7 +125,7 @@ const ProblemDetail = () => {
       });
       setMessage('Problem updated successfully!');
       setIsEditing(false);
-      fetchProblem(); // Re-fetch to update the view state
+      fetchProblem();
     } catch (error) {
       setMessage('Failed to update problem');
     }
@@ -143,7 +141,6 @@ const ProblemDetail = () => {
     }
   };
 
-  // Fixed minor typos in the endorsement handler
   const handleEndorse = async () => {
     try {
       await api.post('/feedback', {
@@ -247,76 +244,104 @@ const ProblemDetail = () => {
           </div>
         )}
 
+        {/* EDITOR + PREVIEW BLOCK */}
         <div className="bg-white rounded-lg shadow-md p-8 mb-6">
           <h2 className="text-sm font-bold text-gray-500 uppercase mb-6 tracking-wider border-b pb-2">Problem Statement</h2>
           {isEditing ? (
             <div className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium mb-1">LaTeX Content</label>
-                <textarea 
-                  value={editedLatex} 
-                  onChange={(e) => setEditedLatex(e.target.value)}
-                  rows={8}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg font-mono text-sm focus:ring-2 focus:ring-ucla-blue outline-none"
-                />
-              </div>
-
-              {/* Added Image Uploader Block here */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Attachments / Images
-                </label>
-                <div className="flex flex-wrap gap-4 mt-2">
-                  {editedImages.map((img, idx) => (
-                    <div key={idx} className="relative w-24 h-28 border border-gray-200 rounded-lg overflow-hidden group flex flex-col shadow-sm">
-                      <div className="h-20 w-full overflow-hidden bg-gray-50">
-                        <img src={img.dataUrl} alt="upload preview" className="w-full h-full object-contain" />
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => toggleImageDestination(idx)}
-                        className={`flex-1 flex items-center justify-center text-[10px] font-bold uppercase tracking-wide transition-colors ${
-                          img.destination === 'problem' 
-                            ? 'bg-blue-100 text-ucla-blue hover:bg-blue-200' 
-                            : 'bg-purple-100 text-purple-700 hover:bg-purple-200'
-                        }`}
-                        title="Click to move image"
-                      >
-                        {img.destination} <ArrowRightLeft size={10} className="ml-1 opacity-50" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => removeImage(idx)}
-                        className="absolute top-0 right-0 bg-red-500 text-white p-1 rounded-bl-lg opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <X size={14} />
-                      </button>
-                    </div>
-                  ))}
-                  <label className="w-24 h-28 flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-400 transition-colors bg-gray-50">
-                    <ImageIcon size={24} className="text-gray-400" />
-                    <span className="text-[10px] text-gray-400 mt-2 font-medium uppercase tracking-wide">Upload</span>
-                    <input
-                      type="file"
-                      className="hidden"
-                      accept="image/*"
-                      multiple
-                      onChange={handleImageUpload}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Left: editors */}
+                <div className="space-y-6">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">LaTeX Content</label>
+                    <textarea 
+                      value={editedLatex} 
+                      onChange={(e) => setEditedLatex(e.target.value)}
+                      rows={8}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg font-mono text-sm focus:ring-2 focus:ring-ucla-blue outline-none"
                     />
-                  </label>
+                  </div>
+
+                  {/* Images editor */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Attachments / Images
+                    </label>
+                    <div className="flex flex-wrap gap-4 mt-2">
+                      {editedImages.map((img, idx) => (
+                        <div key={idx} className="relative w-24 h-28 border border-gray-200 rounded-lg overflow-hidden group flex flex-col shadow-sm">
+                          <div className="h-20 w-full overflow-hidden bg-gray-50">
+                            <img src={img.dataUrl} alt="upload preview" className="w-full h-full object-contain" />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => toggleImageDestination(idx)}
+                            className={`flex-1 flex items-center justify-center text-[10px] font-bold uppercase tracking-wide transition-colors ${
+                              img.destination === 'problem' 
+                                ? 'bg-blue-100 text-ucla-blue hover:bg-blue-200' 
+                                : 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+                            }`}
+                            title="Click to move image"
+                          >
+                            {img.destination} <ArrowRightLeft size={10} className="ml-1 opacity-50" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => removeImage(idx)}
+                            className="absolute top-0 right-0 bg-red-500 text-white p-1 rounded-bl-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      ))}
+                      <label className="w-24 h-28 flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-400 transition-colors bg-gray-50">
+                        <ImageIcon size={24} className="text-gray-400" />
+                        <span className="text-[10px] text-gray-400 mt-2 font-medium uppercase tracking-wide">Upload</span>
+                        <input
+                          type="file"
+                          className="hidden"
+                          accept="image/*"
+                          multiple
+                          onChange={handleImageUpload}
+                        />
+                      </label>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Writer's Solution</label>
+                    <textarea 
+                      value={editedSolution} 
+                      onChange={(e) => setEditedSolution(e.target.value)}
+                      rows={6}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg font-mono text-sm focus:ring-2 focus:ring-ucla-blue outline-none"
+                    />
+                  </div>
+                </div>
+
+                {/* Right: live preview */}
+                <div className="space-y-6">
+                  <div>
+                    <p className="text-xs font-bold text-gray-500 uppercase mb-2 tracking-wider">
+                      Problem Preview
+                    </p>
+                    <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 min-h-[100px]">
+                      <KatexRenderer latex={editedLatex} />
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="text-xs font-bold text-gray-500 uppercase mb-2 tracking-wider">
+                      Solution Preview
+                    </p>
+                    <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 min-h-[80px]">
+                      <KatexRenderer latex={editedSolution} />
+                    </div>
+                  </div>
                 </div>
               </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-1">Writer's Solution</label>
-                <textarea 
-                  value={editedSolution} 
-                  onChange={(e) => setEditedSolution(e.target.value)}
-                  rows={6}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg font-mono text-sm focus:ring-2 focus:ring-ucla-blue outline-none"
-                />
-              </div>
 
+              {/* Rest of fields below editor/preview */}
               <div>
                 <label className="block text-sm font-medium mb-1">Final Answer</label>
                 <input 
@@ -392,6 +417,7 @@ const ProblemDetail = () => {
           )}
         </div>
 
+        {/* Show-solution accordion unchanged */}
         {!isEditing && (problem.solution || problem._isAdmin || problem._isAuthor) && (
           <div className="bg-white rounded-lg shadow-md overflow-hidden mb-6">
             <button 
@@ -430,6 +456,7 @@ const ProblemDetail = () => {
           </div>
         )}
 
+        {/* Feedback block unchanged */}
         <div className="bg-white rounded-lg shadow-md p-8">
           <h2 className="text-xl font-bold text-gray-800 mb-8 flex items-center gap-2">
             Feedback <span className="bg-gray-100 text-gray-500 px-2 py-0.5 rounded text-sm">{feedbacks.length}</span>
