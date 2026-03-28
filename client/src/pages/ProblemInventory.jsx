@@ -328,7 +328,6 @@ const ProblemInventory = () => {
                     <p className="text-xs text-gray-600 mb-1.5 italic truncate">
                       {stripFormatting(problem.latex)}
                     </p>
-
                     <div className="flex flex-wrap gap-1.5 mb-1">
                       {problem.quality && (
                         <span className="px-1.5 py-0.5 bg-yellow-50 text-yellow-700 text-[10px] font-bold rounded uppercase tracking-tighter border border-yellow-200">
@@ -340,11 +339,6 @@ const ProblemInventory = () => {
                           {t}
                         </span>
                       ))}
-                      {problem.examType && problem.examType !== 'Numerical Answer' && (
-                        <span className="px-1.5 py-0.5 bg-blue-50 text-ucla-blue text-[10px] font-bold rounded uppercase tracking-tighter">
-                          {problem.examType}
-                        </span>
-                      )}
                     </div>
                   </td>
                   <td className="px-4 py-2 align-top">
