@@ -247,12 +247,6 @@ const WriteProblem = () => {
           <div className="lg:col-span-5 space-y-6 lg:sticky lg:top-8">
             <div className="bg-slate-900 rounded-[2.5rem] p-1 shadow-2xl overflow-hidden border border-slate-800">
                <div className="bg-slate-800/50 px-6 py-3 border-b border-slate-700 flex items-center justify-between">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-ucla-gold">Live Rendering</span>
-                  <div className="flex gap-1.5">
-                    <div className="w-2.5 h-2.5 rounded-full bg-red-500/20" />
-                    <div className="w-2.5 h-2.5 rounded-full bg-ucla-gold/20" />
-                    <div className="w-2.5 h-2.5 rounded-full bg-green-500/20" />
-                  </div>
                </div>
                
                <div className="p-8 space-y-8 max-h-[calc(100vh-200px)] overflow-y-auto custom-scrollbar">
