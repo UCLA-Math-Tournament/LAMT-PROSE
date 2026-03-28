@@ -1,21 +1,21 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Image as ImageIcon, X, ArrowRightLeft } from 'lucide-react';
+import { Image as ImageIcon, X, ArrowRightLeft, Send, Sparkles, Beaker } from 'lucide-react';
 import api from '../utils/api';
 import Layout from '../components/Layout';
 import KatexRenderer from '../components/KatexRenderer';
 
 const DIFFICULTY_LABELS = {
-  1: 'Problem 1',
-  2: 'Problem 2',
-  3: 'Problem 3',
-  4: 'Problem 4',
-  5: 'Problem 5',
-  6: 'Problem 6',
-  7: 'Problem 7',
-  8: 'Problem 8',
-  9: 'Problem 9',
-  10: 'Problem 10',
+  1: 'Concept Check (Entry Level)',
+  2: 'Standard Fair',
+  3: 'Intermediate',
+  4: 'Competition Prep',
+  5: 'The Bruin Standard',
+  6: 'Challenger Grade',
+  7: 'Advanced Tier',
+  8: 'Elite Bracket',
+  9: 'Tournament Finalist',
+  10: 'Legendary Difficulty',
 };
 
 const WriteProblem = () => {
@@ -26,7 +26,6 @@ const WriteProblem = () => {
   const [topics, setTopics] = useState([]);
   const [difficulty, setDifficulty] = useState(5);
   const [examType, setExamType] = useState('Numerical Answer');
-  // Images are now objects: { dataUrl: string, destination: 'problem' | 'solution' }
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -36,9 +35,7 @@ const WriteProblem = () => {
 
   const handleTopicToggle = (topic) => {
     setTopics(prev =>
-      prev.includes(topic)
-        ? prev.filter(t => t !== topic)
-        : [...prev, topic]
+      prev.includes(topic) ? prev.filter(t => t !== topic) : [...prev, topic]
     );
   };
 
@@ -47,7 +44,6 @@ const WriteProblem = () => {
     files.forEach(file => {
       const reader = new FileReader();
       reader.onloadend = () => {
-        // Default new images to the problem statement
         setImages(prev => [...prev, { dataUrl: reader.result, destination: 'problem' }]);
       };
       reader.readAsDataURL(file);
@@ -69,7 +65,7 @@ const WriteProblem = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (topics.length === 0) {
-      setMessage('Please select at least one topic');
+      setMessage('Please select at least one topic to categorize this masterpiece.');
       return;
     }
 
@@ -80,7 +76,6 @@ const WriteProblem = () => {
       let finalLatex = latex;
       let finalSolution = solution;
 
-      // Separate images by destination
       const problemImages = images.filter(img => img.destination === 'problem');
       const solutionImages = images.filter(img => img.destination === 'solution');
 
@@ -102,13 +97,11 @@ const WriteProblem = () => {
         examType,
       });
 
-      setMessage(`Problem ${response.data.id} created successfully!`);
-      setTimeout(() => {
-        navigate('/inventory');
-      }, 1500);
+      setMessage(`Problem ${response.data.id} published to the pack!`);
+      setTimeout(() => navigate('/inventory'), 1500);
     } catch (error) {
-      const errMsg = error.response?.data?.details || error.response?.data?.error || error.message || 'Unknown error';
-      setMessage(`Failed to create problem: ${errMsg}`);
+      const errMsg = error.response?.data?.details || error.response?.data?.error || 'Connection failed.';
+      setMessage(`Draft error: ${errMsg}`);
     } finally {
       setLoading(false);
     }
@@ -116,243 +109,185 @@ const WriteProblem = () => {
 
   return (
     <Layout>
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">Write New Problem</h1>
+      <div className="max-w-7xl mx-auto px-4 py-12">
+        {/* Header Section */}
+        <div className="mb-10 flex items-center gap-4">
+          <div className="p-3 bg-ucla-blue rounded-2xl shadow-lg shadow-ucla-blue/20">
+            <Beaker className="text-ucla-gold" size={28} />
+          </div>
+          <div>
+            <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tight uppercase italic">
+              Bruin <span className="text-ucla-blue dark:text-ucla-gold not-italic">Blueprint</span>
+            </h1>
+            <p className="text-slate-500 dark:text-slate-400 font-medium">Drafting the next generation of math excellence.</p>
+          </div>
+        </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-semibold mb-6">Problem Editor</h2>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Problem Statement <span className="text-red-500">*</span>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
+          
+          {/* LEFT: FORM SIDE */}
+          <div className="lg:col-span-7 space-y-8">
+            <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-xl border border-slate-100 dark:border-slate-800 p-8 space-y-8">
+              
+              {/* Problem Text */}
+              <div className="space-y-2">
+                <label className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-ucla-blue dark:text-ucla-gold">
+                  <Sparkles size={14} /> Problem Statement
                 </label>
                 <textarea
                   value={latex}
                   onChange={(e) => setLatex(e.target.value)}
                   rows={8}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg font-mono text-sm focus:outline-none focus:border-blue-400"
-                  placeholder="Enter problem text. Use $...$ for inline math, $$...$$ for display math."
+                  className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-3xl font-mono text-sm focus:ring-4 focus:ring-ucla-blue/10 focus:border-ucla-blue outline-none transition-all dark:text-slate-100"
+                  placeholder="Enter problem text. Use $...$ for inline math."
                   required
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Attachments / Images
-                </label>
-                <div className="flex flex-wrap gap-4 mt-2">
+              {/* Image Gallery */}
+              <div className="space-y-3">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Visual Attachments</label>
+                <div className="flex flex-wrap gap-4">
                   {images.map((img, idx) => (
-                    <div key={idx} className="relative w-24 h-28 border border-gray-200 rounded-lg overflow-hidden group flex flex-col shadow-sm">
-                      <div className="h-20 w-full overflow-hidden bg-gray-50">
-                        <img src={img.dataUrl} alt="upload preview" className="w-full h-full object-contain" />
-                      </div>
+                    <div key={idx} className="relative w-28 h-32 bg-slate-100 dark:bg-slate-800 rounded-2xl overflow-hidden group border border-slate-200 dark:border-slate-700">
+                      <img src={img.dataUrl} alt="upload" className="w-full h-20 object-cover" />
                       <button
                         type="button"
                         onClick={() => toggleImageDestination(idx)}
-                        className={`flex-1 flex items-center justify-center text-[10px] font-bold uppercase tracking-wide transition-colors ${
-                          img.destination === 'problem' 
-                            ? 'bg-blue-100 text-ucla-blue hover:bg-blue-200' 
-                            : 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+                        className={`w-full h-12 flex items-center justify-center text-[9px] font-black uppercase transition-colors ${
+                          img.destination === 'problem' ? 'bg-ucla-blue text-white' : 'bg-ucla-gold text-ucla-blue'
                         }`}
-                        title="Click to move image"
                       >
-                        {img.destination} <ArrowRightLeft size={10} className="ml-1 opacity-50" />
+                        {img.destination} <ArrowRightLeft size={10} className="ml-1" />
                       </button>
                       <button
                         type="button"
                         onClick={() => removeImage(idx)}
-                        className="absolute top-0 right-0 bg-red-500 text-white p-1 rounded-bl-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                       >
-                        <X size={14} />
+                        <X size={12} />
                       </button>
                     </div>
                   ))}
-                  <label className="w-24 h-28 flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-400 transition-colors bg-gray-50">
-                    <ImageIcon size={24} className="text-gray-400" />
-                    <span className="text-[10px] text-gray-400 mt-2 font-medium uppercase tracking-wide">Upload</span>
-                    <input
-                      type="file"
-                      className="hidden"
-                      accept="image/*"
-                      multiple
-                      onChange={handleImageUpload}
-                    />
+                  <label className="w-28 h-32 flex flex-col items-center justify-center border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-2xl cursor-pointer hover:bg-ucla-blue/5 hover:border-ucla-blue transition-all group">
+                    <ImageIcon size={24} className="text-slate-400 group-hover:text-ucla-blue" />
+                    <span className="text-[10px] text-slate-400 mt-2 font-black uppercase">Add File</span>
+                    <input type="file" className="hidden" accept="image/*" multiple onChange={handleImageUpload} />
                   </label>
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Writer's Solution <span className="text-red-500">*</span>
-                </label>
+              {/* Writer Solution */}
+              <div className="space-y-2">
+                <label className="text-xs font-black uppercase tracking-widest text-ucla-blue dark:text-ucla-gold">Official Solution</label>
                 <textarea
                   value={solution}
                   onChange={(e) => setSolution(e.target.value)}
                   rows={6}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg font-mono text-sm focus:outline-none focus:border-blue-400"
-                  placeholder="Enter solution text. Use $...$ for inline math, $$...$$ for display math."
+                  className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-3xl font-mono text-sm focus:ring-4 focus:ring-ucla-blue/10 outline-none transition-all dark:text-slate-100"
+                  placeholder="Explain the logic..."
                   required
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Final Answer
-                </label>
-                <input
-                  type="text"
-                  value={answer}
-                  onChange={(e) => setAnswer(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-400"
-                  placeholder="Numerical answer or simple string..."
-                />
-              </div>
+              {/* Difficulty & Type Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-4">
+                  <label className="text-xs font-black uppercase tracking-widest text-slate-400">Difficulty Calibration</label>
+                  <input
+                    type="range" min="1" max="10" step="1"
+                    value={difficulty}
+                    onChange={(e) => setDifficulty(Number(e.target.value))}
+                    className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-ucla-gold"
+                  />
+                  <div className="px-4 py-3 bg-ucla-blue/5 dark:bg-ucla-blue/20 rounded-2xl border border-ucla-blue/10">
+                    <p className="text-ucla-blue dark:text-ucla-gold font-black text-xs uppercase italic">{DIFFICULTY_LABELS[difficulty]}</p>
+                  </div>
+                </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Notes / Comments (Private)
-                </label>
-                <textarea
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  rows={4}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-400"
-                  placeholder="Add any notes, source info, or comments (visible only to you and admins)..."
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Topics
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {topicOptions.map(topic => (
-                    <button
-                      key={topic}
-                      type="button"
-                      onClick={() => handleTopicToggle(topic)}
-                      className={`px-4 py-2 rounded-lg transition-colors ${
-                        topics.includes(topic)
-                          ? 'text-white'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}
-                      style={topics.includes(topic) ? { backgroundColor: '#2774AE' } : {}}
-                    >
-                      {topic}
-                    </button>
-                  ))}
+                <div className="space-y-2">
+                  <label className="text-xs font-black uppercase tracking-widest text-slate-400">Topic Tags</label>
+                  <div className="flex flex-wrap gap-2">
+                    {topicOptions.map(topic => (
+                      <button
+                        key={topic} type="button"
+                        onClick={() => handleTopicToggle(topic)}
+                        className={`px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-tight transition-all border ${
+                          topics.includes(topic)
+                            ? 'bg-ucla-blue border-ucla-blue text-white shadow-md shadow-ucla-blue/20'
+                            : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 hover:border-ucla-blue'
+                        }`}
+                      >
+                        {topic}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Difficulty: <span className="font-bold" style={{ color: '#2774AE' }}>Where would you place this round on a 10 question exam?/10</span>
-                </label>
-                <input
-                  type="range"
-                  min="1"
-                  max="10"
-                  step="1"
-                  value={difficulty}
-                  onChange={(e) => setDifficulty(Number(e.target.value))}
-                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                />
-                <div className="flex justify-between text-xs text-gray-400 mt-1">
-                  {[1,2,3,4,5,6,7,8,9,10].map(n => <span key={n}>{n}</span>)}
-                </div>
-                <div className="mt-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
-                  {DIFFICULTY_LABELS[difficulty]}
-                </div>
+              {/* Submit Section */}
+              <div className="pt-6 border-t border-slate-100 dark:border-slate-800">
+                {message && (
+                  <div className={`mb-6 p-4 rounded-2xl text-xs font-bold ${message.includes('success') ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                    {message}
+                  </div>
+                )}
+                <button
+                  type="submit" disabled={loading}
+                  className="w-full bg-ucla-blue hover:bg-[#1a5a8a] text-white py-4 rounded-2xl transition-all disabled:opacity-50 font-black uppercase tracking-[0.2em] shadow-xl shadow-ucla-blue/20 flex items-center justify-center gap-3"
+                >
+                  {loading ? 'Processing...' : (
+                    <>Submit Problem <Send size={18} /></>
+                  )}
+                </button>
               </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Exam Type
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {['Numerical Answer', 'Proof Based', 'Puzzle/Other'].map(type => (
-                    <button
-                      key={type}
-                      type="button"
-                      onClick={() => setExamType(type)}
-                      className={`px-4 py-2 rounded-lg transition-colors ${
-                        examType === type
-                          ? 'text-white'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}
-                      style={examType === type ? { backgroundColor: '#2774AE' } : {}}
-                    >
-                      {type}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {message && (
-                <div className={`px-4 py-3 rounded text-sm ${
-                  message.includes('successfully')
-                    ? 'bg-green-50 border border-green-200 text-green-700'
-                    : 'bg-red-50 border border-red-200 text-red-700'
-                }`}>
-                  {message}
-                </div>
-              )}
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full text-white py-2 rounded-lg transition-colors disabled:opacity-50 font-bold"
-                style={{ backgroundColor: '#2774AE' }}
-              >
-                {loading ? 'Creating...' : 'Submit Problem'}
-              </button>
             </form>
           </div>
 
-          <div className="space-y-6">
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-xl font-semibold mb-4">Problem Preview</h2>
-              <div className="border border-gray-200 rounded-lg p-4 min-h-[200px]">
-                {latex ? (
-                  <KatexRenderer latex={latex} />
-                ) : (
-                  <p className="text-gray-400 text-center">Problem preview will appear here...</p>
-                )}
-                {images.filter(img => img.destination === 'problem').length > 0 && (
-                  <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-gray-100">
-                    {images.filter(img => img.destination === 'problem').map((img, i) => (
-                      <img key={i} src={img.dataUrl} alt="problem attachment" className="rounded border w-full h-auto" />
-                    ))}
+          {/* RIGHT: LIVE PREVIEW SIDE (Sticky) */}
+          <div className="lg:col-span-5 space-y-6 lg:sticky lg:top-8">
+            <div className="bg-slate-900 rounded-[2.5rem] p-1 shadow-2xl overflow-hidden border border-slate-800">
+               <div className="bg-slate-800/50 px-6 py-3 border-b border-slate-700 flex items-center justify-between">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-ucla-gold">Live Rendering</span>
+                  <div className="flex gap-1.5">
+                    <div className="w-2.5 h-2.5 rounded-full bg-red-500/20" />
+                    <div className="w-2.5 h-2.5 rounded-full bg-ucla-gold/20" />
+                    <div className="w-2.5 h-2.5 rounded-full bg-green-500/20" />
                   </div>
-                )}
-              </div>
+               </div>
+               
+               <div className="p-8 space-y-8 max-h-[calc(100vh-200px)] overflow-y-auto custom-scrollbar">
+                  <div className="space-y-4">
+                    <h3 className="text-ucla-blue font-black text-[10px] uppercase tracking-widest">Problem Statement</h3>
+                    <div className="text-slate-200 leading-relaxed text-sm bg-slate-800/30 p-6 rounded-3xl border border-slate-700/50 min-h-[120px]">
+                      {latex ? <KatexRenderer latex={latex} /> : <span className="text-slate-600 italic">Waiting for input...</span>}
+                      <div className="grid grid-cols-2 gap-4 mt-4">
+                        {images.filter(img => img.destination === 'problem').map((img, i) => (
+                          <img key={i} src={img.dataUrl} className="rounded-xl border border-slate-700" alt="preview" />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <h3 className="text-ucla-gold font-black text-[10px] uppercase tracking-widest">Solution Flow</h3>
+                    <div className="text-slate-300 leading-relaxed text-sm bg-slate-800/30 p-6 rounded-3xl border border-slate-700/50 min-h-[120px]">
+                      {solution ? <KatexRenderer latex={solution} /> : <span className="text-slate-600 italic">No solution yet...</span>}
+                      <div className="grid grid-cols-2 gap-4 mt-4">
+                        {images.filter(img => img.destination === 'solution').map((img, i) => (
+                          <img key={i} src={img.dataUrl} className="rounded-xl border border-slate-700" alt="preview" />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+               </div>
             </div>
 
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-xl font-semibold mb-4">Solution Preview</h2>
-              <div className="border border-gray-200 rounded-lg p-4 min-h-[200px]">
-                {solution ? (
-                  <KatexRenderer latex={solution} />
-                ) : (
-                  <p className="text-gray-400 text-center">Solution preview will appear here...</p>
-                )}
-                {images.filter(img => img.destination === 'solution').length > 0 && (
-                  <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-gray-100">
-                    {images.filter(img => img.destination === 'solution').map((img, i) => (
-                      <img key={i} src={img.dataUrl} alt="solution attachment" className="rounded border w-full h-auto" />
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {notes && (
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <h2 className="text-xl font-semibold mb-4">Notes Preview</h2>
-                <div className="border border-yellow-200 bg-yellow-50 rounded-lg p-4 min-h-[80px] text-sm text-gray-700 whitespace-pre-wrap">
-                  {notes}
-                </div>
+            {/* Final Answer Quick Card */}
+            {answer && (
+              <div className="bg-gradient-to-r from-ucla-blue to-blue-800 rounded-3xl p-6 text-white shadow-xl shadow-ucla-blue/20">
+                <p className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-1">Final Answer Key</p>
+                <p className="text-2xl font-black">{answer}</p>
               </div>
             )}
           </div>
