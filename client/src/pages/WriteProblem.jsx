@@ -6,7 +6,7 @@ import Layout from '../components/Layout';
 import KatexRenderer from '../components/KatexRenderer';
 
 const DIFFICULTY_LABELS = {
-    1: 'Concept Check (1/10)',
+  1: 'Concept Check (1/10)',
   2: 'Standard Fair (2/10)',
   3: 'Intermediate (3/10)',
   4: 'Competition Prep (4/10)',
@@ -80,11 +80,11 @@ const WriteProblem = () => {
       const solutionImages = images.filter(img => img.destination === 'solution');
 
       if (problemImages.length > 0) {
-        finalLatex += '\n\n' + problemImages.map((img, i) => `![Problem Image ${i+1}](${img.dataUrl})`).join('\n');
+        finalLatex += '\n\n' + problemImages.map((img, i) => `![Problem Image ${i + 1}](${img.dataUrl})`).join('\n');
       }
       
       if (solutionImages.length > 0) {
-        finalSolution += '\n\n' + solutionImages.map((img, i) => `![Solution Image ${i+1}](${img.dataUrl})`).join('\n');
+        finalSolution += '\n\n' + solutionImages.map((img, i) => `![Solution Image ${i + 1}](${img.dataUrl})`).join('\n');
       }
 
       const response = await api.post('/problems', {
@@ -97,7 +97,7 @@ const WriteProblem = () => {
         examType,
       });
 
-      setMessage(`Problem ${response.data.id} published to the pack!`);
+      setMessage(`Success! Problem ${response.data.id} published.`);
       setTimeout(() => navigate('/inventory'), 1500);
     } catch (error) {
       const errMsg = error.response?.data?.details || error.response?.data?.error || 'Connection failed.';
@@ -125,10 +125,12 @@ const WriteProblem = () => {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
           
           {/* LEFT: FORM SIDE */}
-          <div className="lg:col-span-7 space-y-8">              
+          <div className="lg:col-span-7">
+            <form onSubmit={handleSubmit} className="space-y-8">
               {/* Problem Text */}
               <div className="space-y-2">
-                  <Sparkles size={14} /> Problem Statement
+                <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                  <Sparkles size={14} className="text-ucla-blue" /> Problem Statement
                 </label>
                 <textarea
                   value={latex}
@@ -145,7 +147,7 @@ const WriteProblem = () => {
                 <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Visual Attachments</label>
                 <div className="flex flex-wrap gap-4">
                   {images.map((img, idx) => (
-                    <div key={idx} className="relative w-28 h-32 bg-slate-100 dark:bg-slate-800 rounded-2xl overflow-hidden group border border-slate-200 dark:border-slate-700">
+                    <div key={idx} className="relative w-28 h-32 bg-slate-100 dark:bg-slate-800 rounded-2xl overflow-hidden group border border-slate-200 dark:border-slate-700 shadow-sm">
                       <img src={img.dataUrl} alt="upload" className="w-full h-20 object-cover" />
                       <button
                         type="button"
@@ -175,7 +177,7 @@ const WriteProblem = () => {
 
               {/* Writer Solution */}
               <div className="space-y-2">
-                <label className="text-xs font-black uppercase tracking-widest text-ucla-blue dark:text-ucla-gold">Official Solution</label>
+                <label className="text-[10px] font-black uppercase tracking-widest text-ucla-blue dark:text-ucla-gold">Official Solution</label>
                 <textarea
                   value={solution}
                   onChange={(e) => setSolution(e.target.value)}
@@ -186,10 +188,23 @@ const WriteProblem = () => {
                 />
               </div>
 
+              {/* Answer Key Input */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Final Numerical Answer</label>
+                <input 
+                  type="text"
+                  value={answer}
+                  onChange={(e) => setAnswer(e.target.value)}
+                  placeholder="e.g. 42 or 1/2"
+                  className="w-full px-5 py-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl font-black focus:ring-4 focus:ring-ucla-blue/10 outline-none dark:text-white"
+                  required
+                />
+              </div>
+
               {/* Difficulty & Type Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="space-y-4">
-                  <label className="text-xs font-black uppercase tracking-widest text-slate-400">Difficulty Calibration</label>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Difficulty Calibration</label>
                   <input
                     type="range" min="1" max="10" step="1"
                     value={difficulty}
@@ -197,12 +212,14 @@ const WriteProblem = () => {
                     className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-ucla-gold"
                   />
                   <div className="px-4 py-3 bg-ucla-blue/5 dark:bg-ucla-blue/20 rounded-2xl border border-ucla-blue/10">
-                    <p className="text-ucla-blue dark:text-ucla-gold font-black text-xs uppercase italic">{DIFFICULTY_LABELS[difficulty]}</p>
+                    <p className="text-ucla-blue dark:text-ucla-gold font-black text-[10px] uppercase italic tracking-tighter">
+                      {DIFFICULTY_LABELS[difficulty]}
+                    </p>
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs font-black uppercase tracking-widest text-slate-400">Topic Tags</label>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Topic Tags</label>
                   <div className="flex flex-wrap gap-2">
                     {topicOptions.map(topic => (
                       <button
@@ -224,7 +241,7 @@ const WriteProblem = () => {
               {/* Submit Section */}
               <div className="pt-6 border-t border-slate-100 dark:border-slate-800">
                 {message && (
-                  <div className={`mb-6 p-4 rounded-2xl text-xs font-bold ${message.includes('success') ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                  <div className={`mb-6 p-4 rounded-2xl text-[10px] font-black uppercase ${message.includes('Success') ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                     {message}
                   </div>
                 )}
@@ -243,41 +260,38 @@ const WriteProblem = () => {
           {/* RIGHT: LIVE PREVIEW SIDE (Sticky) */}
           <div className="lg:col-span-5 space-y-6 lg:sticky lg:top-8">
             <div className="bg-slate-900 rounded-[2.5rem] p-1 shadow-2xl overflow-hidden border border-slate-800">
-               <div className="bg-slate-800/50 px-6 py-3 border-b border-slate-700 flex items-center justify-between">
-               </div>
-               
-               <div className="p-8 space-y-8 max-h-[calc(100vh-200px)] overflow-y-auto custom-scrollbar">
-                  <div className="space-y-4">
-                    <h3 className="text-ucla-blue font-black text-[10px] uppercase tracking-widest">Problem Statement</h3>
-                    <div className="text-slate-200 leading-relaxed text-sm bg-slate-800/30 p-6 rounded-3xl border border-slate-700/50 min-h-[120px]">
-                      {latex ? <KatexRenderer latex={latex} /> : <span className="text-slate-600 italic">Waiting for input...</span>}
-                      <div className="grid grid-cols-2 gap-4 mt-4">
-                        {images.filter(img => img.destination === 'problem').map((img, i) => (
-                          <img key={i} src={img.dataUrl} className="rounded-xl border border-slate-700" alt="preview" />
-                        ))}
-                      </div>
+              <div className="p-8 space-y-8 max-h-[calc(100vh-200px)] overflow-y-auto custom-scrollbar">
+                <div className="space-y-4">
+                  <h3 className="text-ucla-blue font-black text-[10px] uppercase tracking-widest">Problem Statement</h3>
+                  <div className="text-slate-200 leading-relaxed text-sm bg-slate-800/30 p-6 rounded-3xl border border-slate-700/50 min-h-[120px]">
+                    {latex ? <KatexRenderer latex={latex} /> : <span className="text-slate-600 italic">Waiting for input...</span>}
+                    <div className="grid grid-cols-2 gap-4 mt-4">
+                      {images.filter(img => img.destination === 'problem').map((img, i) => (
+                        <img key={i} src={img.dataUrl} className="rounded-xl border border-slate-700" alt="preview" />
+                      ))}
                     </div>
                   </div>
+                </div>
 
-                  <div className="space-y-4">
-                    <h3 className="text-ucla-gold font-black text-[10px] uppercase tracking-widest">Solution Flow</h3>
-                    <div className="text-slate-300 leading-relaxed text-sm bg-slate-800/30 p-6 rounded-3xl border border-slate-700/50 min-h-[120px]">
-                      {solution ? <KatexRenderer latex={solution} /> : <span className="text-slate-600 italic">No solution yet...</span>}
-                      <div className="grid grid-cols-2 gap-4 mt-4">
-                        {images.filter(img => img.destination === 'solution').map((img, i) => (
-                          <img key={i} src={img.dataUrl} className="rounded-xl border border-slate-700" alt="preview" />
-                        ))}
-                      </div>
+                <div className="space-y-4">
+                  <h3 className="text-ucla-gold font-black text-[10px] uppercase tracking-widest">Solution Flow</h3>
+                  <div className="text-slate-300 leading-relaxed text-sm bg-slate-800/30 p-6 rounded-3xl border border-slate-700/50 min-h-[120px]">
+                    {solution ? <KatexRenderer latex={solution} /> : <span className="text-slate-600 italic">No solution yet...</span>}
+                    <div className="grid grid-cols-2 gap-4 mt-4">
+                      {images.filter(img => img.destination === 'solution').map((img, i) => (
+                        <img key={i} src={img.dataUrl} className="rounded-xl border border-slate-700" alt="preview" />
+                      ))}
                     </div>
                   </div>
-               </div>
+                </div>
+              </div>
             </div>
 
             {/* Final Answer Quick Card */}
             {answer && (
               <div className="bg-gradient-to-r from-ucla-blue to-blue-800 rounded-3xl p-6 text-white shadow-xl shadow-ucla-blue/20">
                 <p className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-1">Final Answer Key</p>
-                <p className="text-2xl font-black">{answer}</p>
+                <p className="text-2xl font-black italic">{answer}</p>
               </div>
             )}
           </div>
