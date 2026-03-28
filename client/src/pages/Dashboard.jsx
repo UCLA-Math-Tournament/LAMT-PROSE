@@ -109,7 +109,7 @@ const Dashboard = () => {
   if (dashboardLoading) {
     return (
       <Layout>
-        <div className="flex items-center justify-center h-64 text-gray-500">
+        <div className="flex items-center justify-center h-64 text-gray-500 dark:text-gray-400 animate-pulse font-medium">
           Loading Dashboard...
         </div>
       </Layout>
@@ -123,21 +123,21 @@ const Dashboard = () => {
         {/* Header & Navigation */}
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-ucla-blue mb-2">
+            <h1 className="text-3xl font-bold text-ucla-blue dark:text-[#FFD100] mb-2 transition-colors">
               Welcome, {user?.firstName}!
             </h1>
-            <p className="text-gray-500">
+            <p className="text-gray-500 dark:text-gray-400 transition-colors">
               {activeTab === 'overview' ? 'Here is an overview of your activity.' : 'Manage your profile and account settings.'}
             </p>
           </div>
           
-          <div className="flex bg-white rounded-lg shadow-sm p-1 border border-gray-200">
+          <div className="flex bg-white dark:bg-slate-800 rounded-lg shadow-sm p-1 border border-gray-200 dark:border-slate-700 transition-colors">
             <button
               onClick={() => setActiveTab('overview')}
               className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                 activeTab === 'overview' 
-                  ? 'bg-ucla-blue text-white' 
-                  : 'text-gray-600 hover:bg-gray-50'
+                  ? 'bg-ucla-blue text-white dark:bg-[#FFD100] dark:text-slate-900' 
+                  : 'text-gray-600 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-slate-700'
               }`}
             >
               <LayoutDashboard size={18} />
@@ -147,8 +147,8 @@ const Dashboard = () => {
               onClick={() => setActiveTab('profile')}
               className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                 activeTab === 'profile' 
-                  ? 'bg-ucla-blue text-white' 
-                  : 'text-gray-600 hover:bg-gray-50'
+                  ? 'bg-ucla-blue text-white dark:bg-[#FFD100] dark:text-slate-900' 
+                  : 'text-gray-600 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-slate-700'
               }`}
             >
               <User size={18} />
@@ -162,21 +162,21 @@ const Dashboard = () => {
           <div className="animate-in fade-in duration-300">
             {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <h3 className="text-sm font-medium text-gray-600 mb-2">Total Problems</h3>
-                <p className="text-3xl font-bold text-ucla-blue">{stats?.totalProblems || 0}</p>
+              <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-6 border border-gray-100 dark:border-slate-700/50 transition-colors">
+                <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Total Problems</h3>
+                <p className="text-3xl font-bold text-ucla-blue dark:text-[#FFD100]">{stats?.totalProblems || 0}</p>
               </div>
-              <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-yellow-400">
-                <h3 className="text-sm font-medium text-gray-600 mb-2">Endorsements</h3>
+              <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-6 border border-gray-100 dark:border-slate-700/50 border-l-4 border-l-yellow-400 dark:border-l-[#FFD100] transition-colors">
+                <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Endorsements</h3>
                 <div className="flex items-center gap-2">
-                  <Star size={24} className="text-yellow-500 fill-yellow-400" />
-                  <p className="text-3xl font-bold text-ucla-blue">{stats?.totalEndorsements || 0}</p>
+                  <Star size={24} className="text-yellow-500 dark:text-[#FFD100] fill-yellow-400 dark:fill-[#FFD100]" />
+                  <p className="text-3xl font-bold text-ucla-blue dark:text-[#FFD100]">{stats?.totalEndorsements || 0}</p>
                 </div>
               </div>
               {topics.map((topic) => (
-                <div key={topic} className="bg-white rounded-lg shadow-md p-6">
-                  <h3 className="text-sm font-medium text-gray-600 mb-2">{topic}</h3>
-                  <p className="text-3xl font-bold text-ucla-blue">{stats?.topicCounts?.[topic] || 0}</p>
+                <div key={topic} className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-6 border border-gray-100 dark:border-slate-700/50 transition-colors">
+                  <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">{topic}</h3>
+                  <p className="text-3xl font-bold text-ucla-blue dark:text-[#FFD100]">{stats?.topicCounts?.[topic] || 0}</p>
                 </div>
               ))}
             </div>
@@ -184,16 +184,16 @@ const Dashboard = () => {
             <div className="flex flex-col lg:flex-row gap-8">
               {/* Main Problems Table */}
               <div className="flex-1">
-                <div className="bg-white rounded-lg shadow-md overflow-hidden">
-                  <div className="p-4 border-b flex gap-2 flex-wrap">
+                <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md overflow-hidden border border-gray-100 dark:border-slate-700/50 transition-colors">
+                  <div className="p-4 border-b border-gray-100 dark:border-slate-700 flex gap-2 flex-wrap">
                     {['all', 'needs_review', 'Idea', 'Published', 'endorsed'].map((s) => (
                       <button
                         key={s}
                         onClick={() => setFilter(s)}
                         className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                           filter === s
-                            ? 'bg-ucla-blue text-white shadow-sm'
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            ? 'bg-ucla-blue text-white shadow-sm dark:bg-[#FFD100] dark:text-slate-900'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-slate-700 dark:text-gray-300 dark:hover:bg-slate-600'
                         }`}
                       >
                         {s === 'all' ? 'All' : s === 'needs_review' ? 'Needs Review' : s}
@@ -201,32 +201,38 @@ const Dashboard = () => {
                     ))}
                   </div>
                   <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead className="bg-gray-50">
+                    <table className="w-full text-left">
+                      <thead className="bg-gray-50 dark:bg-slate-900/50">
                         <tr>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Topics</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Endorsed</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Created</th>
+                          <th className="px-4 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">ID</th>
+                          <th className="px-4 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Topics</th>
+                          <th className="px-4 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Status</th>
+                          <th className="px-4 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Endorsed</th>
+                          <th className="px-4 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Created</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-gray-100">
+                      <tbody className="divide-y divide-gray-100 dark:divide-slate-700/50">
                         {filteredProblems.length === 0 ? (
-                          <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-400">No problems found in this category</td></tr>
+                          <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-400 dark:text-gray-500">No problems found in this category</td></tr>
                         ) : filteredProblems.map((problem) => (
                           <tr
                             key={problem.id}
                             onClick={() => navigate(`/problem/${problem.id}`)}
-                            className="hover:bg-gray-50 cursor-pointer"
+                            className="hover:bg-gray-50 dark:hover:bg-slate-700/50 cursor-pointer transition-colors"
                           >
-                            <td className="px-4 py-3 font-mono text-sm font-bold">{problem.id}</td>
-                            <td className="px-4 py-3">{problem.topics.map(t => <span key={t} className="mr-1 mb-1 inline-block px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded">{t}</span>)}</td>
+                            <td className="px-4 py-3 font-mono text-sm font-bold dark:text-white">{problem.id}</td>
+                            <td className="px-4 py-3">
+                              {problem.topics.map(t => (
+                                <span key={t} className="mr-1 mb-1 inline-block px-2 py-0.5 bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 text-xs rounded font-medium">
+                                  {t}
+                                </span>
+                              ))}
+                            </td>
                             <td className="px-4 py-3">
                               <span className={`px-2 py-1 text-xs rounded font-medium ${
-                                problem._displayStatus === 'needs_review' ? 'bg-red-100 text-red-800' :
-                                problem._displayStatus === 'endorsed' ? 'bg-yellow-100 text-yellow-800' :
-                                'bg-gray-100 text-gray-700'
+                                problem._displayStatus === 'needs_review' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' :
+                                problem._displayStatus === 'endorsed' ? 'bg-yellow-100 text-yellow-800 dark:bg-[#FFD100]/20 dark:text-[#FFD100]' :
+                                'bg-gray-100 text-gray-700 dark:bg-slate-700 dark:text-gray-300'
                               }`}>
                                 {problem._displayStatus === 'needs_review' ? 'Needs Review' :
                                 problem._displayStatus === 'endorsed' ? 'Endorsed' :
@@ -235,12 +241,12 @@ const Dashboard = () => {
                             </td>
                             <td className="px-4 py-3">
                               {problem.endorsements > 0 ? (
-                                <span className="flex items-center gap-1 text-yellow-600 text-sm">
+                                <span className="flex items-center gap-1 text-yellow-600 dark:text-[#FFD100] text-sm font-medium">
                                   <Star size={14} fill="currentColor" /> {problem.endorsements}
                                 </span>
-                              ) : <span className="text-gray-400">-</span>}
+                              ) : <span className="text-gray-400 dark:text-gray-600">-</span>}
                             </td>
-                            <td className="px-4 py-3 text-sm text-gray-500">{new Date(problem.createdAt).toLocaleDateString()}</td>
+                            <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{new Date(problem.createdAt).toLocaleDateString()}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -251,26 +257,25 @@ const Dashboard = () => {
 
               {/* Reviewer Sidebar */}
               <div className="w-full lg:w-80 flex-shrink-0">
-                <div className="bg-white rounded-lg shadow-md p-6">
-                  <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                    <MessageSquare size={20} />
+                <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-6 border border-gray-100 dark:border-slate-700/50 transition-colors">
+                  <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 text-gray-800 dark:text-white">
+                    <MessageSquare size={20} className="text-ucla-blue dark:text-[#FFD100]" />
                     Your Reviews
                   </h2>
                   {myFeedback.length === 0 ? (
-                    <p className="text-gray-500 text-sm">You haven't submitted any reviews yet.</p>
+                    <p className="text-gray-500 dark:text-gray-400 text-sm">You haven't submitted any reviews yet.</p>
                   ) : myFeedback.map((fb) => (
                     <div
                       key={fb.id}
                       onClick={() => navigate(`/problem/${fb.problemId}`)}
-                      className="cursor-pointer border-l-4 border-gray-200 pl-3 py-2 mb-3 hover:border-ucla-blue transition-colors group"
+                      className="cursor-pointer border-l-4 border-gray-200 dark:border-slate-600 pl-3 py-2 mb-3 hover:border-ucla-blue dark:hover:border-[#FFD100] transition-colors group"
                     >
                       <div className="flex justify-between items-center">
                         <div className="flex items-center gap-2">
-                          <span className="font-mono text-sm font-bold">{fb.problemId}</span>
-                          {/* Only show resolved/unresolved if it's NOT an endorsement */}
+                          <span className="font-mono text-sm font-bold dark:text-white">{fb.problemId}</span>
                           {!fb.isEndorsement && (
-                            <span className={`text-xs px-2 py-0.5 rounded ${
-                              fb.resolved ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                            <span className={`text-xs px-2 py-0.5 rounded font-medium ${
+                              fb.resolved ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
                             }`}>
                               {fb.resolved ? 'Resolved' : 'Unresolved'}
                             </span>
@@ -278,23 +283,23 @@ const Dashboard = () => {
                         </div>
                         <button 
                           onClick={(e) => handleDeleteFeedback(e, fb.id)}
-                          className="text-gray-400 hover:text-red-500 transition-colors p-1 opacity-0 group-hover:opacity-100"
+                          className="text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors p-1 opacity-0 group-hover:opacity-100"
                           title="Remove Feedback"
                         >
                           <Trash2 size={16} />
                         </button>
                       </div>
-                      {fb.answer && <p className="text-xs text-gray-600 mt-1"><span className="font-semibold">Your answer:</span> {fb.answer}</p>}
-                      {fb.comment && <p className="text-xs text-gray-500 mt-1 truncate">"{fb.comment}"</p>}
+                      {fb.answer && <p className="text-xs text-gray-600 dark:text-gray-300 mt-1"><span className="font-semibold text-gray-800 dark:text-gray-200">Your answer:</span> {fb.answer}</p>}
+                      {fb.comment && <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate italic">"{fb.comment}"</p>}
                       <div className="flex justify-between items-center mt-1">
-                        <p className="text-xs text-gray-400">{fb.createdAt ? new Date(fb.createdAt).toLocaleDateString() : ''}</p>
-                        {fb.isEndorsement && <span className="text-xs text-yellow-600 font-medium">Endorsed</span>}
+                        <p className="text-xs text-gray-400 dark:text-gray-500">{fb.createdAt ? new Date(fb.createdAt).toLocaleDateString() : ''}</p>
+                        {fb.isEndorsement && <span className="text-xs text-yellow-600 dark:text-[#FFD100] font-medium">Endorsed</span>}
                       </div>
                     </div>
                   ))}
                   <button
                     onClick={() => navigate('/feedback')}
-                    className="w-full mt-4 py-2 bg-ucla-blue text-white rounded-lg font-bold hover:bg-blue-800 transition-colors"
+                    className="w-full mt-4 py-2 bg-ucla-blue text-white dark:bg-[#FFD100] dark:text-slate-900 rounded-lg font-bold hover:bg-blue-800 dark:hover:bg-yellow-500 transition-colors shadow-sm"
                   >
                     Review More Problems
                   </button>
@@ -308,14 +313,14 @@ const Dashboard = () => {
         {activeTab === 'profile' && (
           <div className="max-w-4xl mx-auto animate-in fade-in duration-300">
             {/* Profile Settings Card */}
-            <div className="bg-white rounded-xl shadow-lg p-8 mb-8">
-              <h2 className="text-xl font-semibold text-gray-800 mb-6 text-center">Profile Settings</h2>
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg p-8 mb-8 border border-gray-100 dark:border-slate-700/50 transition-colors">
+              <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-6 text-center">Profile Settings</h2>
 
               {profileMessage && (
-                <div className={`mb-4 px-4 py-3 rounded text-center ${
+                <div className={`mb-4 px-4 py-3 rounded text-center text-sm font-medium ${
                   profileMessage.includes('success')
-                    ? 'bg-blue-50 border border-blue-200 text-blue-700'
-                    : 'bg-red-50 border border-red-200 text-red-700'
+                    ? 'bg-blue-50 border border-blue-200 text-blue-700 dark:bg-blue-900/30 dark:border-blue-800 dark:text-blue-300'
+                    : 'bg-red-50 border border-red-200 text-red-700 dark:bg-red-900/30 dark:border-red-800 dark:text-red-300'
                 }`}>
                   {profileMessage}
                 </div>
@@ -325,25 +330,25 @@ const Dashboard = () => {
                 {/* Row 1: Email + Initials */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1 text-center sm:text-left">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 text-center sm:text-left">
                       Email
                     </label>
                     <input
                       type="email"
                       value={user?.email || ''}
                       disabled
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-center sm:text-left"
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-800 text-gray-500 dark:text-gray-400 text-center sm:text-left cursor-not-allowed transition-colors"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1 text-center sm:text-left">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 text-center sm:text-left">
                       Initials
                     </label>
                     <input
                       type="text"
                       value={user?.initials || ''}
                       disabled
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-center sm:text-left"
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-800 text-gray-500 dark:text-gray-400 text-center sm:text-left cursor-not-allowed transition-colors"
                     />
                   </div>
                 </div>
@@ -351,46 +356,46 @@ const Dashboard = () => {
                 {/* Row 2: First Name + Last Name */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1 text-center sm:text-left">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 text-center sm:text-left">
                       First Name
                     </label>
                     <input
                       type="text"
                       value={formData.firstName}
                       onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ucla-blue focus:border-transparent"
+                      className="w-full px-4 py-2 bg-transparent dark:bg-slate-900 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-ucla-blue dark:focus:ring-[#FFD100] focus:border-transparent outline-none transition-all"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1 text-center sm:text-left">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 text-center sm:text-left">
                       Last Name
                     </label>
                     <input
                       type="text"
                       value={formData.lastName}
                       onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ucla-blue focus:border-transparent"
+                      className="w-full px-4 py-2 bg-transparent dark:bg-slate-900 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-ucla-blue dark:focus:ring-[#FFD100] focus:border-transparent outline-none transition-all"
                     />
                   </div>
                 </div>
 
                 {/* Row 3: Math Experience */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1 text-center sm:text-left">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 text-center sm:text-left">
                     Math Experience
                   </label>
                   <textarea
                     value={formData.mathExp}
                     onChange={(e) => setFormData({ ...formData, mathExp: e.target.value })}
                     rows={3}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ucla-blue focus:border-transparent"
+                    className="w-full px-4 py-2 bg-transparent dark:bg-slate-900 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-ucla-blue dark:focus:ring-[#FFD100] focus:border-transparent outline-none transition-all resize-y"
                   />
                 </div>
 
                 <button
                   type="submit"
                   disabled={profileSubmitting}
-                  className="w-full bg-ucla-blue text-white py-3 rounded-lg transition-colors hover:bg-blue-800 disabled:opacity-50 font-semibold mt-4"
+                  className="w-full bg-ucla-blue text-white dark:bg-[#FFD100] dark:text-slate-900 py-3 rounded-lg transition-colors hover:bg-blue-800 dark:hover:bg-yellow-500 disabled:opacity-50 font-bold mt-4 shadow-sm"
                 >
                   {profileSubmitting ? 'Saving...' : 'Save Profile'}
                 </button>
