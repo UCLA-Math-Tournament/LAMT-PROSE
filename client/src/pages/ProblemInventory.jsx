@@ -4,10 +4,9 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ReferenceLine, ResponsiveContainer,
   BarChart, Bar, Cell
 } from 'recharts';
-import { Check, X, Star, Eye, EyeOff } from 'lucide-react';
+import { Check, Star } from 'lucide-react';
 import api from '../utils/api';
 import Layout from '../components/Layout';
-import KatexRenderer from '../components/KatexRenderer';
 
 const ProblemInventory = () => {
   const navigate = useNavigate();
@@ -17,7 +16,6 @@ const ProblemInventory = () => {
   const [stageFilter, setStageFilter] = useState('all');
   const [topicFilter, setTopicFilter] = useState('all');
   const [loading, setLoading] = useState(true);
-  const [showSolutions, setShowSolutions] = useState({});
 
   useEffect(() => {
     fetchData();
@@ -45,19 +43,26 @@ const ProblemInventory = () => {
     const matchesSearch = search === '' || 
       (p.id || '').toLowerCase().includes(search.toLowerCase()) ||
       (p.latex || '').toLowerCase().includes(search.toLowerCase());
-    const matchesStage = stageFilter === 'all' || p.stage === stageFilter;
+    
+    // Made case-insensitive to catch formatting differences from the backend
+    const matchesStage = stageFilter === 'all' || 
+      (p.stage || '').toLowerCase() === stageFilter.toLowerCase();
+      
     const matchesTopic = topicFilter === 'all' || (p.topics || []).includes(topicFilter);
+    
     return matchesSearch && matchesStage && matchesTopic;
   });
 
-  // Dynamic counts by examType
-  const typeCounts = filtered.reduce((acc, p) => {
-    const type = p.examType || 'Numerical Answer';
-    acc[type] = (acc[type] || 0) + 1;
+  // Dynamic counts by Topic (alg, geo, nt, combo) instead of examType
+  const topicCounts = filtered.reduce((acc, p) => {
+    const topics = p.topics && p.topics.length > 0 ? p.topics : ['Uncategorized'];
+    topics.forEach(topic => {
+      acc[topic] = (acc[topic] || 0) + 1;
+    });
     return acc;
   }, {});
 
-  const barData = Object.entries(typeCounts).map(([name, value]) => ({ name, value }));
+  const barData = Object.entries(topicCounts).map(([name, value]) => ({ name, value }));
   const COLORS = ['#2774AE', '#FFD100', '#003B5C', '#808080'];
 
   const stripFormatting = (text) => {
@@ -67,7 +72,7 @@ const ProblemInventory = () => {
       .replace(/\$\$[^$]+\$\$/g, '')
       .replace(/[#*`]/g, '')
       .replace(/\\/g, '')
-      .substring(0, 200) + (text.length > 200 ? '...' : '');
+      .substring(0, 50) + (text.length > 50 ? '...' : '');
   };
 
   if (loading) {
@@ -100,9 +105,9 @@ const ProblemInventory = () => {
             </div>
             
             <div className="mt-8 grid grid-cols-2 gap-4">
-              {Object.entries(typeCounts).map(([type, count]) => (
-                <div key={type} className="p-3 bg-gray-50 rounded-lg border border-gray-100">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase">{type}</p>
+              {Object.entries(topicCounts).map(([topic, count]) => (
+                <div key={topic} className="p-3 bg-gray-50 rounded-lg border border-gray-100">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase truncate">{topic}</p>
                   <p className="text-xl font-bold text-ucla-blue">{count}</p>
                 </div>
               ))}
@@ -110,35 +115,41 @@ const ProblemInventory = () => {
           </div>
 
           <div className="lg:col-span-2 bg-white rounded-lg shadow-md p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-[250px]">
-              <div>
-                <h3 className="text-xs font-bold text-gray-400 uppercase mb-4">Cumulative Growth</h3>
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                    <XAxis dataKey="date" hide />
-                    <YAxis stroke="#94a3b8" fontSize={12} />
-                    <Tooltip />
-                    <Line type="monotone" dataKey="count" stroke="#2774AE" strokeWidth={3} dot={false} />
-                    <ReferenceLine y={200} stroke="#cbd5e1" strokeDasharray="3 3" />
-                  </LineChart>
-                </ResponsiveContainer>
+            {/* Added fixed height constraints and min-w-0 to fix Recharts expansion bug */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-64">
+              <div className="flex flex-col h-full min-w-0">
+                <h3 className="text-xs font-bold text-gray-400 uppercase mb-4 shrink-0">Cumulative Growth</h3>
+                <div className="flex-1 w-full min-h-0">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={chartData}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                      <XAxis dataKey="date" hide />
+                      <YAxis stroke="#94a3b8" fontSize={12} />
+                      <Tooltip />
+                      <Line type="monotone" dataKey="count" stroke="#2774AE" strokeWidth={3} dot={false} />
+                      <ReferenceLine y={200} stroke="#cbd5e1" strokeDasharray="3 3" />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
               </div>
-              <div>
-                <h3 className="text-xs font-bold text-gray-400 uppercase mb-4">Type Breakdown</h3>
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={barData}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                    <XAxis dataKey="name" hide />
-                    <YAxis stroke="#94a3b8" fontSize={12} />
-                    <Tooltip />
-                    <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                      {barData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
+              
+              <div className="flex flex-col h-full min-w-0">
+                <h3 className="text-xs font-bold text-gray-400 uppercase mb-4 shrink-0">Topic Breakdown</h3>
+                <div className="flex-1 w-full min-h-0">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={barData}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                      <XAxis dataKey="name" hide />
+                      <YAxis stroke="#94a3b8" fontSize={12} />
+                      <Tooltip />
+                      <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                        {barData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
               </div>
             </div>
           </div>
@@ -229,26 +240,6 @@ const ProblemInventory = () => {
                         {problem.examType || 'Numerical Answer'}
                       </span>
                     </div>
-
-                    <button 
-                      onClick={() => setShowSolutions(prev => ({ ...prev, [problem.id]: !prev[problem.id] }))}
-                      className="flex items-center gap-1.5 text-xs font-bold text-ucla-blue hover:text-ucla-dark-blue"
-                    >
-                      {showSolutions[problem.id] ? <EyeOff size={14} /> : <Eye size={14} />}
-                      {showSolutions[problem.id] ? 'Hide Solution' : 'Show Solution'}
-                    </button>
-                    
-                    {showSolutions[problem.id] && (
-                      <div className="mt-3 p-4 bg-gray-50 rounded-lg border border-gray-100 text-sm">
-                        <KatexRenderer latex={problem.solution || 'No solution provided.'} />
-                        {problem.answer && (
-                          <div className="mt-2 pt-2 border-t border-gray-200">
-                            <span className="font-bold text-xs uppercase text-gray-400 mr-2">Answer:</span>
-                            <KatexRenderer latex={problem.answer} />
-                          </div>
-                        )}
-                      </div>
-                    )}
                   </td>
                   <td className="px-6 py-4 align-top">
                     <div className="space-y-2">
