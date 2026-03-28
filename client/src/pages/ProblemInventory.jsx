@@ -16,21 +16,65 @@ const ProblemInventory = () => {
   const [stageFilter, setStageFilter] = useState('all');
   const [topicFilter, setTopicFilter] = useState('all');
   const [difficultyFilter, setDifficultyFilter] = useState('all');
-  const [sortBy, setSortBy] = useState('newest'); // Added sorting state
+  const [sortBy, setSortBy] = useState('newest');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchData();
   }, []);
 
+  // Compute multi-line history data directly from the problems array
+  const generateProgressData = (problemsData) => {
+    if (!problemsData || problemsData.length === 0) return [];
+    
+    const sorted = [...problemsData].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+    let ideas = 0;
+    let review = 0;
+    let endorsed = 0;
+    
+    const history = [];
+    
+    sorted.forEach(p => {
+      const stage = (p.stage || '').toLowerCase();
+      const display = (p._displayStatus || '').toLowerCase();
+      
+      // Categorize the problem into the 3 buckets
+      if (display === 'endorsed' || stage === 'endorsed' || stage === 'published' || p.endorsements >= 3) {
+        endorsed++;
+      } else if (display === 'needs_review' || stage.includes('review')) {
+        review++;
+      } else {
+        ideas++;
+      }
+
+      const dateStr = new Date(p.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+      
+      const lastEntry = history[history.length - 1];
+      if (lastEntry && lastEntry.date === dateStr) {
+        // Update the existing day's totals
+        lastEntry.Ideas = ideas;
+        lastEntry['Needs Review'] = review;
+        lastEntry.Endorsed = endorsed;
+      } else {
+        // Start a new day
+        history.push({
+          date: dateStr,
+          Ideas: ideas,
+          'Needs Review': review,
+          Endorsed: endorsed,
+        });
+      }
+    });
+    
+    return history;
+  };
+
   const fetchData = async () => {
     try {
-      const [problemsRes, progressRes] = await Promise.all([
-        api.get('/problems'),
-        api.get('/stats/tournament-progress')
-      ]);
-      setProblems(problemsRes.data);
-      setChartData(progressRes.data);
+      // We only need the problems endpoint now since we compute the complex chart data ourselves
+      const res = await api.get('/problems');
+      setProblems(res.data);
+      setChartData(generateProgressData(res.data));
     } catch (error) {
       console.error('Failed to fetch inventory:', error);
     } finally {
@@ -41,7 +85,6 @@ const ProblemInventory = () => {
   const totalProblems = problems.length;
   const progressPercent = Math.min((totalProblems / 200) * 100, 100);
 
-  // First filter the problems
   let filtered = problems.filter(p => {
     const matchesSearch = search === '' || 
       (p.id || '').toLowerCase().includes(search.toLowerCase()) ||
@@ -58,7 +101,6 @@ const ProblemInventory = () => {
     return matchesSearch && matchesStage && matchesTopic && matchesDifficulty;
   });
 
-  // Then sort the filtered results
   filtered = filtered.sort((a, b) => {
     if (sortBy === 'diff-asc') {
       return (parseInt(a.quality) || 0) - (parseInt(b.quality) || 0);
@@ -69,7 +111,6 @@ const ProblemInventory = () => {
     if (sortBy === 'oldest') {
       return new Date(a.createdAt) - new Date(b.createdAt);
     }
-    // Default: newest first
     return new Date(b.createdAt) - new Date(a.createdAt);
   });
 
@@ -98,7 +139,7 @@ const ProblemInventory = () => {
     return (
       <Layout>
         <div className="flex items-center justify-center h-64">
-          <div className="text-gray-600">Loading...</div>
+          <div className="text-gray-600 font-medium">Loading Inventory...</div>
         </div>
       </Layout>
     );
@@ -136,15 +177,25 @@ const ProblemInventory = () => {
           <div className="lg:col-span-2 bg-white rounded-lg shadow-md p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-64">
               <div className="flex flex-col h-full min-w-0">
-                <h3 className="text-xs font-bold text-gray-400 uppercase mb-4 shrink-0">Cumulative Growth</h3>
+                <h3 className="text-xs font-bold text-gray-400 uppercase mb-2 shrink-0">Cumulative Growth by Stage</h3>
                 <div className="flex-1 w-full min-h-0">
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={chartData}>
+                    <LineChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
                       <XAxis dataKey="date" hide />
-                      <YAxis stroke="#94a3b8" fontSize={12} />
-                      <Tooltip />
-                      <Line type="monotone" dataKey="count" stroke="#2774AE" strokeWidth={3} dot={false} />
+                      <YAxis stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
+                      
+                      {/* Added Hover Tooltip & Interactive Legend */}
+                      <Tooltip 
+                        contentStyle={{ borderRadius: '8px', fontSize: '12px', border: '1px solid #f0f0f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} 
+                      />
+                      <Legend iconType="circle" wrapperStyle={{ fontSize: '10px', paddingTop: '10px' }} />
+                      
+                      {/* Three separate lines for each stage */}
+                      <Line type="monotone" name="Endorsed" dataKey="Endorsed" stroke="#22c55e" strokeWidth={3} dot={false} activeDot={{ r: 6 }} />
+                      <Line type="monotone" name="Needs Review" dataKey="Needs Review" stroke="#eab308" strokeWidth={2} dot={false} />
+                      <Line type="monotone" name="Ideas" dataKey="Ideas" stroke="#94a3b8" strokeWidth={2} dot={false} />
+                      
                       <ReferenceLine y={200} stroke="#cbd5e1" strokeDasharray="3 3" />
                     </LineChart>
                   </ResponsiveContainer>
@@ -158,8 +209,8 @@ const ProblemInventory = () => {
                     <BarChart data={barData}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
                       <XAxis dataKey="name" hide />
-                      <YAxis stroke="#94a3b8" fontSize={12} />
-                      <Tooltip />
+                      <YAxis stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
+                      <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '8px', fontSize: '12px', border: '1px solid #f0f0f0' }} />
                       <Bar dataKey="value" radius={[4, 4, 0, 0]}>
                         {barData.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -289,7 +340,6 @@ const ProblemInventory = () => {
                           {t}
                         </span>
                       ))}
-                      {/* Only show Exam Type if it exists AND is not 'Numerical Answer' */}
                       {problem.examType && problem.examType !== 'Numerical Answer' && (
                         <span className="px-1.5 py-0.5 bg-blue-50 text-ucla-blue text-[10px] font-bold rounded uppercase tracking-tighter">
                           {problem.examType}
