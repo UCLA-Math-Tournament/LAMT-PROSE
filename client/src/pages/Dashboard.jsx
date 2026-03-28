@@ -267,11 +267,14 @@ const Dashboard = () => {
                       <div className="flex justify-between items-center">
                         <div className="flex items-center gap-2">
                           <span className="font-mono text-sm font-bold">{fb.problemId}</span>
-                          <span className={`text-xs px-2 py-0.5 rounded ${
-                            fb.resolved ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                          }`}>
-                            {fb.resolved ? 'Resolved' : 'Unresolved'}
-                          </span>
+                          {/* Only show resolved/unresolved if it's NOT an endorsement */}
+                          {!fb.isEndorsement && (
+                            <span className={`text-xs px-2 py-0.5 rounded ${
+                              fb.resolved ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                            }`}>
+                              {fb.resolved ? 'Resolved' : 'Unresolved'}
+                            </span>
+                          )}
                         </div>
                         <button 
                           onClick={(e) => handleDeleteFeedback(e, fb.id)}
@@ -384,7 +387,7 @@ const Dashboard = () => {
                   />
                 </div>
 
-<button
+                <button
                   type="submit"
                   disabled={profileSubmitting}
                   className="w-full bg-ucla-blue text-white py-3 rounded-lg transition-colors hover:bg-blue-800 disabled:opacity-50 font-semibold mt-4"
