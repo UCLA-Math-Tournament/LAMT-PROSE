@@ -12,10 +12,8 @@ const ADMIN_EMAILS = [
   'tomwu@g.ucla.edu',
 ];
 
-// All valid stages
-const VALID_STAGES = ['Idea', 'Review', 'Live/Ready for Review', 'On Test', 'Published', 'Needs Review', 'Endorsed'];
-// Stages only admins can set (protect production-level stages)
-const ADMIN_ONLY_STAGES = ['On Test', 'Published'];
+// Consolidated 3-stage system
+const VALID_STAGES = ['Idea', 'Needs Review', 'Endorsed'];
 
 // Compute display status: unresolved feedback > endorsed > stage
 function computeDisplayStatus(problem) {
@@ -29,9 +27,7 @@ function computeDisplayStatus(problem) {
 
 // Atomically assign the next available problem ID
 async function assignProblemId(userInitials) {
-  // Use a transaction to prevent race conditions
   return await prisma.$transaction(async (tx) => {
-    // Get all existing IDs for this user's initials prefix
     const existing = await tx.problem.findMany({
       select: { id: true },
       where: { id: { startsWith: userInitials } },
@@ -41,7 +37,7 @@ async function assignProblemId(userInitials) {
         .map((p) => parseInt(p.id.slice(userInitials.length)))
         .filter((n) => !isNaN(n))
     );
-    // Find the lowest available number starting from 1
+    // Also check deleted IDs table if it exists, to reuse gaps
     let num = 1;
     while (usedNums.has(num)) num++;
     const newId = `${userInitials}${String(num).padStart(4, '0')}`;
@@ -92,7 +88,6 @@ router.get('/', authenticate, async (req, res) => {
       select: { isAdmin: true, email: true },
     });
     const isAdmin = currentUser?.isAdmin || ADMIN_EMAILS.includes(currentUser?.email);
-
     const where = {};
     if (reviewable === 'true') {
       where.authorId = { not: req.userId };
@@ -107,7 +102,6 @@ router.get('/', authenticate, async (req, res) => {
         { latex: { contains: search, mode: 'insensitive' } },
       ];
     }
-
     const problems = await prisma.problem.findMany({
       where,
       include: {
@@ -116,7 +110,6 @@ router.get('/', authenticate, async (req, res) => {
       },
       orderBy: { createdAt: 'desc' },
     });
-
     const result = problems.map((p) => {
       const pData = { ...p };
       const isAuthor = p.authorId === req.userId;
@@ -207,10 +200,6 @@ router.put('/:id', authenticate, async (req, res) => {
     if (stage !== undefined && !VALID_STAGES.includes(stage)) {
       return res.status(400).json({ error: `Invalid stage. Must be one of: ${VALID_STAGES.join(', ')}` });
     }
-    // Only admins can set admin-only stages
-    if (stage !== undefined && ADMIN_ONLY_STAGES.includes(stage) && !isAdmin) {
-      return res.status(403).json({ error: 'Only admins can set this stage' });
-    }
     const updateData = {};
     if (latex !== undefined) updateData.latex = latex;
     if (solution !== undefined) updateData.solution = solution;
@@ -250,6 +239,8 @@ router.delete('/:id', authenticate, async (req, res) => {
     if (existing.authorId !== req.userId && !isAdmin) {
       return res.status(403).json({ error: 'Not authorized' });
     }
+    // Delete all related feedbacks first (cascade)
+    await prisma.feedback.deleteMany({ where: { problemId: req.params.id } });
     await prisma.problem.delete({ where: { id: req.params.id } });
     res.json({ message: 'Problem deleted' });
   } catch (error) {
