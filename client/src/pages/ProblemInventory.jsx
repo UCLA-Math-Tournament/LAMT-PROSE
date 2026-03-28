@@ -15,6 +15,7 @@ const ProblemInventory = () => {
   const [search, setSearch] = useState('');
   const [stageFilter, setStageFilter] = useState('all');
   const [topicFilter, setTopicFilter] = useState('all');
+  const [difficultyFilter, setDifficultyFilter] = useState('all'); // Added state
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -44,16 +45,18 @@ const ProblemInventory = () => {
       (p.id || '').toLowerCase().includes(search.toLowerCase()) ||
       (p.latex || '').toLowerCase().includes(search.toLowerCase());
     
-    // Made case-insensitive to catch formatting differences from the backend
     const matchesStage = stageFilter === 'all' || 
       (p.stage || '').toLowerCase() === stageFilter.toLowerCase();
       
     const matchesTopic = topicFilter === 'all' || (p.topics || []).includes(topicFilter);
     
-    return matchesSearch && matchesStage && matchesTopic;
+    // Added difficulty match logic (safely parsing strings to integers!)
+    const matchesDifficulty = difficultyFilter === 'all' || 
+      parseInt(p.quality) === parseInt(difficultyFilter);
+    
+    return matchesSearch && matchesStage && matchesTopic && matchesDifficulty;
   });
 
-  // Dynamic counts by Topic (alg, geo, nt, combo) instead of examType
   const topicCounts = filtered.reduce((acc, p) => {
     const topics = p.topics && p.topics.length > 0 ? p.topics : ['Uncategorized'];
     topics.forEach(topic => {
@@ -92,6 +95,7 @@ const ProblemInventory = () => {
         <p className="text-gray-600 mb-6">Tracking progress toward 200 problems</p>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+          {/* ... Chart Code Remains Unchanged ... */}
           <div className="lg:col-span-1 bg-white rounded-lg shadow-md p-6">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Total Problems</h2>
@@ -115,7 +119,6 @@ const ProblemInventory = () => {
           </div>
 
           <div className="lg:col-span-2 bg-white rounded-lg shadow-md p-6">
-            {/* Added fixed height constraints and min-w-0 to fix Recharts expansion bug */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-64">
               <div className="flex flex-col h-full min-w-0">
                 <h3 className="text-xs font-bold text-gray-400 uppercase mb-4 shrink-0">Cumulative Growth</h3>
@@ -163,6 +166,19 @@ const ProblemInventory = () => {
             onChange={(e) => setSearch(e.target.value)}
             className="flex-1 min-w-[200px] px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ucla-blue focus:border-transparent outline-none"
           />
+          
+          {/* Added Difficulty Dropdown */}
+          <select
+            value={difficultyFilter}
+            onChange={(e) => setDifficultyFilter(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ucla-blue outline-none"
+          >
+            <option value="all">All Difficulties</option>
+            {[...Array(10)].map((_, i) => (
+              <option key={i + 1} value={i + 1}>Difficulty: {i + 1}</option>
+            ))}
+          </select>
+
           <select
             value={stageFilter}
             onChange={(e) => setStageFilter(e.target.value)}
@@ -177,6 +193,7 @@ const ProblemInventory = () => {
             <option value="Published">Published</option>
             <option value="Needs Review">Needs Review</option>
           </select>
+
           <select
             value={topicFilter}
             onChange={(e) => setTopicFilter(e.target.value)}
@@ -188,6 +205,7 @@ const ProblemInventory = () => {
             <option value="Combinatorics">Combinatorics</option>
             <option value="Number Theory">Number Theory</option>
           </select>
+
           <div className="text-sm font-medium text-gray-500 ml-auto">
             Showing {filtered.length} results
           </div>
@@ -231,6 +249,12 @@ const ProblemInventory = () => {
                     </p>
 
                     <div className="flex flex-wrap gap-2 mb-3">
+                      {/* Added difficulty visual tag */}
+                      {problem.quality && (
+                        <span className="px-2 py-0.5 bg-yellow-50 text-yellow-700 text-[10px] font-bold rounded uppercase tracking-tighter border border-yellow-200">
+                          Diff: {problem.quality}
+                        </span>
+                      )}
                       {(problem.topics || []).map(t => (
                         <span key={t} className="px-2 py-0.5 bg-gray-100 text-gray-600 text-[10px] font-bold rounded uppercase tracking-tighter">
                           {t}
