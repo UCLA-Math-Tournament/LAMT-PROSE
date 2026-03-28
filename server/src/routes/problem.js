@@ -12,8 +12,13 @@ const prisma = new PrismaClient();
 
 
 
-const ADMIN_EMAILS = ['arpituppal@ucla.edu'];
-
+const ADMIN_EMAILS = [
+  'arpituppal@ucla.edu',
+  'kennethren271@ucla.edu',
+  'brookswang@ucla.edu',
+  'zhangv29@ucla.edu',
+  'tomwu@g.ucla.edu',
+];
 const ADMIN_CODE = 'LAMTADMIN839fhy38fynx389hm09h';
 
 
