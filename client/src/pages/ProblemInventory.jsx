@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ReferenceLine, ResponsiveContainer,
   BarChart, Bar, Cell
 } from 'recharts';
-import { Check, Star } from 'lucide-react';
+import { Check, Star, Search, Filter, TrendingUp, BookOpen } from 'lucide-react';
 import api from '../utils/api';
 import Layout from '../components/Layout';
 
@@ -19,51 +19,14 @@ const ProblemInventory = () => {
   const [sortBy, setSortBy] = useState('newest');
   const [loading, setLoading] = useState(true);
 
+  // UCLA Brand Constants
+  const UCLA_BLUE = '#2774AE';
+  const UCLA_GOLD = '#FFD100';
+  const DARK_NAVY = '#003B5C';
+
   useEffect(() => {
     fetchData();
   }, []);
-
-  const generateProgressData = (problemsData) => {
-    if (!problemsData || problemsData.length === 0) return [];
-    
-    const sorted = [...problemsData].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-    let ideas = 0;
-    let review = 0;
-    let endorsed = 0;
-    
-    const history = [];
-    
-    sorted.forEach(p => {
-      const stage = (p.stage || '').toLowerCase();
-      const display = (p._displayStatus || '').toLowerCase();
-      
-      if (display === 'endorsed' || stage === 'endorsed' || stage === 'published' || p.endorsements >= 3) {
-        endorsed++;
-      } else if (display === 'needs_review' || stage.includes('review')) {
-        review++;
-      } else {
-        ideas++;
-      }
-
-      const dateStr = new Date(p.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-      
-      const lastEntry = history[history.length - 1];
-      if (lastEntry && lastEntry.date === dateStr) {
-        lastEntry.Ideas = ideas;
-        lastEntry['Needs Review'] = review;
-        lastEntry.Endorsed = endorsed;
-      } else {
-        history.push({
-          date: dateStr,
-          Ideas: ideas,
-          'Needs Review': review,
-          Endorsed: endorsed,
-        });
-      }
-    });
-    
-    return history;
-  };
 
   const fetchData = async () => {
     try {
@@ -77,57 +40,43 @@ const ProblemInventory = () => {
     }
   };
 
+  const { filtered, topicCounts } = useMemo(() => {
+    let result = problems.filter(p => {
+      const matchesSearch = search === '' || 
+        (p.id || '').toLowerCase().includes(search.toLowerCase()) ||
+        (p.latex || '').toLowerCase().includes(search.toLowerCase());
+      const matchesStage = stageFilter === 'all' || (p.stage || '').toLowerCase() === stageFilter.toLowerCase();
+      const matchesTopic = topicFilter === 'all' || (p.topics || []).includes(topicFilter);
+      const matchesDifficulty = difficultyFilter === 'all' || parseInt(p.quality) === parseInt(difficultyFilter);
+      return matchesSearch && matchesStage && matchesTopic && matchesDifficulty;
+    });
+
+    result.sort((a, b) => {
+      if (sortBy === 'diff-asc') return (parseInt(a.quality) || 0) - (parseInt(b.quality) || 0);
+      if (sortBy === 'diff-desc') return (parseInt(b.quality) || 0) - (parseInt(a.quality) || 0);
+      if (sortBy === 'oldest') return new Date(a.createdAt) - new Date(b.createdAt);
+      return new Date(b.createdAt) - new Date(a.createdAt);
+    });
+
+    const counts = result.reduce((acc, p) => {
+      const topics = p.topics && p.topics.length > 0 ? p.topics : ['Misc'];
+      topics.forEach(topic => acc[topic] = (acc[topic] || 0) + 1);
+      return acc;
+    }, {});
+
+    return { filtered: result, topicCounts: counts };
+  }, [problems, search, stageFilter, topicFilter, difficultyFilter, sortBy]);
+
   const totalProblems = problems.length;
   const progressPercent = Math.min((totalProblems / 200) * 100, 100);
-
-  let filtered = problems.filter(p => {
-    const matchesSearch = search === '' || 
-      (p.id || '').toLowerCase().includes(search.toLowerCase()) ||
-      (p.latex || '').toLowerCase().includes(search.toLowerCase());
-    
-    const matchesStage = stageFilter === 'all' || 
-      (p.stage || '').toLowerCase() === stageFilter.toLowerCase();
-      
-    const matchesTopic = topicFilter === 'all' || (p.topics || []).includes(topicFilter);
-    
-    const matchesDifficulty = difficultyFilter === 'all' || 
-      parseInt(p.quality) === parseInt(difficultyFilter);
-    
-    return matchesSearch && matchesStage && matchesTopic && matchesDifficulty;
-  });
-
-  filtered = filtered.sort((a, b) => {
-    if (sortBy === 'diff-asc') return (parseInt(a.quality) || 0) - (parseInt(b.quality) || 0);
-    if (sortBy === 'diff-desc') return (parseInt(b.quality) || 0) - (parseInt(a.quality) || 0);
-    if (sortBy === 'oldest') return new Date(a.createdAt) - new Date(b.createdAt);
-    return new Date(b.createdAt) - new Date(a.createdAt);
-  });
-
-  const topicCounts = filtered.reduce((acc, p) => {
-    const topics = p.topics && p.topics.length > 0 ? p.topics : ['Uncategorized'];
-    topics.forEach(topic => acc[topic] = (acc[topic] || 0) + 1);
-    return acc;
-  }, {});
-
   const barData = Object.entries(topicCounts).map(([name, value]) => ({ name, value }));
-  // Updated with exact UCLA Branding Colors + Complementary Data colors
-  const COLORS = ['#2774AE', '#FFD100', '#003B5C', '#8BB8E8'];
-
-  const stripFormatting = (text) => {
-    if (!text) return '';
-    return text
-      .replace(/\$[^$]+\$/g, '')
-      .replace(/\$\$[^$]+\$\$/g, '')
-      .replace(/[#*`]/g, '')
-      .replace(/\\/g, '')
-      .substring(0, 50) + (text.length > 50 ? '...' : '');
-  };
 
   if (loading) {
     return (
       <Layout>
-        <div className="flex items-center justify-center h-64">
-          <div className="text-gray-500 dark:text-gray-400 font-medium animate-pulse">Loading Bruin Inventory...</div>
+        <div className="flex flex-col items-center justify-center h-96">
+          <div className="w-12 h-12 border-4 border-ucla-gold border-t-ucla-blue rounded-full animate-spin mb-4"></div>
+          <p className="text-ucla-blue dark:text-ucla-gold font-bold animate-pulse">Gathering the Pack...</p>
         </div>
       </Layout>
     );
@@ -135,226 +84,181 @@ const ProblemInventory = () => {
 
   return (
     <Layout>
-      <div className="mb-8">
-        {/* Header - UCLA Blue in Light, UCLA Gold in Dark */}
-        <h1 className="text-3xl font-bold text-ucla-blue dark:text-[#FFD100] mb-2 transition-colors">
-          Tournament Progress
-        </h1>
-        <p className="text-gray-600 dark:text-gray-300 mb-6 transition-colors">Tracking progress toward 200 problems</p>
+      <div className="max-w-7xl mx-auto px-4 pb-12">
+        {/* --- Header Section --- */}
+        <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div>
+            <h1 className="text-4xl font-black text-ucla-blue dark:text-ucla-gold tracking-tight italic uppercase">
+              Bruin <span className="text-slate-800 dark:text-white not-italic">Inventory</span>
+            </h1>
+            <p className="text-slate-500 dark:text-slate-400 font-medium">Tournament Preparation Dashboard</p>
+          </div>
+          <div className="bg-white dark:bg-slate-800 px-4 py-2 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center gap-4">
+             <div className="text-right">
+                <p className="text-[10px] font-bold text-slate-400 uppercase">Current Velocity</p>
+                <p className="text-sm font-bold text-slate-700 dark:text-slate-200">{(totalProblems / 7).toFixed(1)} problems/week</p>
+             </div>
+             <TrendingUp className="text-green-500" size={20} />
+          </div>
+        </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-          {/* Stats Card */}
-          <div className="lg:col-span-1 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-gray-100 dark:border-slate-700/50 p-6 transition-all">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-sm font-bold text-gray-400 dark:text-gray-400 uppercase tracking-wider">Total Problems</h2>
-              <span className="text-ucla-blue dark:text-[#FFD100] font-black text-lg">{totalProblems} / 200</span>
+        {/* --- Top Stats Grid --- */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          {/* Progress Card */}
+          <div className="lg:col-span-1 bg-gradient-to-br from-ucla-blue to-[#005587] rounded-3xl p-6 text-white shadow-xl relative overflow-hidden group">
+            <div className="relative z-10">
+              <div className="flex justify-between items-center mb-2">
+                <h2 className="text-xs font-bold uppercase tracking-[0.2em] opacity-80">Collection Goal</h2>
+                <span className="text-2xl font-black">{totalProblems}<span className="text-ucla-gold/60">/200</span></span>
+              </div>
+              <div className="w-full bg-white/20 blur-[0.5px] rounded-full h-3 mb-6 overflow-hidden border border-white/10">
+                <div 
+                  className="bg-ucla-gold h-full shadow-[0_0_15px_rgba(255,209,0,0.5)] transition-all duration-1000" 
+                  style={{ width: `${progressPercent}%` }}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                {Object.entries(topicCounts).slice(0, 4).map(([topic, count]) => (
+                  <div key={topic} className="bg-white/10 backdrop-blur-md rounded-xl p-3 border border-white/5 hover:bg-white/20 transition-colors">
+                    <p className="text-[10px] font-bold uppercase opacity-70 truncate">{topic}</p>
+                    <p className="text-lg font-bold">{count}</p>
+                  </div>
+                ))}
+              </div>
             </div>
-            {/* Progress Bar - Gold in dark mode! */}
-            <div className="w-full bg-gray-100 dark:bg-slate-700 rounded-full h-4 overflow-hidden">
-              <div 
-                className="bg-ucla-blue dark:bg-[#FFD100] h-full transition-all duration-700 ease-out" 
-                style={{ width: `${progressPercent}%` }}
-              ></div>
-            </div>
-            
-            <div className="mt-8 grid grid-cols-2 gap-4">
-              {Object.entries(topicCounts).map(([topic, count]) => (
-                <div key={topic} className="p-3 bg-gray-50 dark:bg-slate-900/50 rounded-lg border border-gray-100 dark:border-slate-700">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase truncate">{topic}</p>
-                  <p className="text-xl font-bold text-ucla-blue dark:text-white">{count}</p>
-                </div>
-              ))}
-            </div>
+            {/* Decorative "U" background */}
+            <div className="absolute -bottom-10 -right-10 text-[15rem] font-black opacity-10 select-none pointer-events-none">U</div>
           </div>
 
-          {/* Charts Card */}
-          <div className="lg:col-span-2 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-gray-100 dark:border-slate-700/50 p-6 transition-all">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 h-64">
-              <div className="flex flex-col h-full min-w-0">
-                <h3 className="text-xs font-bold text-gray-400 uppercase mb-2 shrink-0">Cumulative Growth</h3>
-                <div className="flex-1 w-full min-h-0">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.2} />
-                      <XAxis dataKey="date" hide />
-                      <YAxis stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
-                      <Tooltip contentStyle={{ borderRadius: '8px', fontSize: '12px', border: 'none', backgroundColor: '#1e293b', color: '#f8fafc', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.3)' }} />
-                      <Legend iconType="circle" wrapperStyle={{ fontSize: '10px', paddingTop: '10px' }} />
-                      <Line type="monotone" name="Endorsed" dataKey="Endorsed" stroke="#22c55e" strokeWidth={3} dot={false} activeDot={{ r: 6 }} />
-                      <Line type="monotone" name="Needs Review" dataKey="Needs Review" stroke="#FFD100" strokeWidth={2} dot={false} />
-                      <Line type="monotone" name="Ideas" dataKey="Ideas" stroke="#94a3b8" strokeWidth={2} dot={false} />
-                      <ReferenceLine y={200} stroke="#64748b" strokeDasharray="3 3" opacity={0.5} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-              
-              <div className="flex flex-col h-full min-w-0">
-                <h3 className="text-xs font-bold text-gray-400 uppercase mb-4 shrink-0">Topic Breakdown</h3>
-                <div className="flex-1 w-full min-h-0">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={barData}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.2} />
-                      <XAxis dataKey="name" hide />
-                      <YAxis stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
-                      <Tooltip cursor={{ fill: '#334155', opacity: 0.1 }} contentStyle={{ borderRadius: '8px', fontSize: '12px', border: 'none', backgroundColor: '#1e293b', color: '#f8fafc' }} />
-                      <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                        {barData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
+          {/* Chart Card */}
+          <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-slate-100 dark:border-slate-800 p-6">
+            <div className="flex items-center gap-2 mb-6">
+               <BookOpen className="text-ucla-blue dark:text-ucla-gold" size={18} />
+               <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 uppercase tracking-wider">Growth Analytics</h3>
+            </div>
+            <div className="h-48">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={chartData}>
+                  <defs>
+                    <linearGradient id="colorEndorsed" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor={UCLA_GOLD} stopOpacity={0.1}/>
+                      <stop offset="95%" stopColor={UCLA_GOLD} stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.1} />
+                  <XAxis dataKey="date" hide />
+                  <YAxis stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} />
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: '#0f172a', border: 'none', borderRadius: '12px', fontSize: '12px', color: '#fff' }}
+                    itemStyle={{ padding: '2px 0' }}
+                  />
+                  <Line type="monotone" name="Endorsed" dataKey="Endorsed" stroke={UCLA_GOLD} strokeWidth={4} dot={false} activeDot={{ r: 6, strokeWidth: 0 }} />
+                  <Line type="monotone" name="Review" dataKey="Needs Review" stroke={UCLA_BLUE} strokeWidth={2} strokeDasharray="5 5" dot={false} />
+                </LineChart>
+              </ResponsiveContainer>
             </div>
           </div>
         </div>
 
-        {/* Filters and Search - FIXED FOR DARK MODE */}
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-md border border-gray-100 dark:border-slate-700/50 p-4 flex flex-wrap gap-4 items-center mb-6 transition-all">
-          <input
-            type="text"
-            placeholder="Search problems..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="flex-1 min-w-[200px] px-4 py-2 bg-transparent border border-gray-300 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-ucla-blue dark:focus:ring-[#FFD100] focus:border-transparent outline-none transition-all"
-          />
+        {/* --- Interactive Filter Bar --- */}
+        <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md sticky top-4 z-30 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 p-3 mb-8 flex flex-wrap gap-3 items-center">
+          <div className="relative flex-1 min-w-[240px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+            <input
+              type="text"
+              placeholder="Search by ID or Content..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border-none rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-ucla-blue outline-none transition-all"
+            />
+          </div>
           
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            className="px-4 py-2 bg-gray-50 dark:bg-slate-900 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-ucla-blue dark:focus:ring-[#FFD100] focus:border-transparent outline-none transition-all cursor-pointer"
-          >
-            <option value="newest">Newest First</option>
-            <option value="oldest">Oldest First</option>
-            <option value="diff-desc">Difficulty (High-Low)</option>
-            <option value="diff-asc">Difficulty (Low-High)</option>
-          </select>
-
-          <select
-            value={difficultyFilter}
-            onChange={(e) => setDifficultyFilter(e.target.value)}
-            className="px-4 py-2 bg-transparent border border-gray-300 dark:border-slate-600 rounded-lg text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-ucla-blue dark:focus:ring-[#FFD100] focus:border-transparent outline-none transition-all cursor-pointer"
-          >
-            <option value="all">All Difficulties</option>
-            {[...Array(10)].map((_, i) => (
-              <option key={i + 1} value={i + 1}>Difficulty: {i + 1}</option>
+          <div className="flex flex-wrap gap-2">
+            {[
+              { val: stageFilter, set: setStageFilter, options: ['All Stages', 'Idea', 'Review', 'Endorsed', 'Published'], icon: <Filter size={14}/> },
+              { val: topicFilter, set: setTopicFilter, options: ['All Topics', 'Algebra', 'Geometry', 'Combinatorics', 'Number Theory'] }
+            ].map((f, i) => (
+              <select
+                key={i}
+                value={f.val}
+                onChange={(e) => f.set(e.target.value)}
+                className="px-3 py-2 bg-slate-100 dark:bg-slate-800 border-none rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors outline-none"
+              >
+                {f.options.map(opt => <option key={opt} value={opt === 'All Stages' || opt === 'All Topics' ? 'all' : opt}>{opt}</option>)}
+              </select>
             ))}
-          </select>
-
-          <select
-            value={stageFilter}
-            onChange={(e) => setStageFilter(e.target.value)}
-            className="px-4 py-2 bg-transparent border border-gray-300 dark:border-slate-600 rounded-lg text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-ucla-blue dark:focus:ring-[#FFD100] focus:border-transparent outline-none transition-all cursor-pointer"
-          >
-            <option value="all">All Stages</option>
-            <option value="Idea">Idea</option>
-            <option value="Review">Review</option>
-            <option value="Endorsed">Endorsed</option>
-            <option value="Live/Ready for Review">Live/Ready for Review</option>
-            <option value="On Test">On Test</option>
-            <option value="Published">Published</option>
-            <option value="Needs Review">Needs Review</option>
-          </select>
-
-          <select
-            value={topicFilter}
-            onChange={(e) => setTopicFilter(e.target.value)}
-            className="px-4 py-2 bg-transparent border border-gray-300 dark:border-slate-600 rounded-lg text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-ucla-blue dark:focus:ring-[#FFD100] focus:border-transparent outline-none transition-all cursor-pointer"
-          >
-            <option value="all">All Topics</option>
-            <option value="Algebra">Algebra</option>
-            <option value="Geometry">Geometry</option>
-            <option value="Combinatorics">Combinatorics</option>
-            <option value="Number Theory">Number Theory</option>
-          </select>
-
-          <div className="text-sm font-medium text-gray-500 dark:text-gray-400 ml-auto">
-            Showing {filtered.length} results
           </div>
         </div>
 
-        {/* Table Area */}
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-gray-100 dark:border-slate-700/50 overflow-hidden transition-all">
-          <table className="w-full text-left border-collapse">
+        {/* --- Problem Table --- */}
+        <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-slate-100 dark:border-slate-800 overflow-hidden">
+          <table className="w-full text-left">
             <thead>
-              <tr className="bg-gray-50 dark:bg-slate-900/50 border-b border-gray-100 dark:border-slate-700">
-                <th className="px-5 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Status</th>
-                <th className="px-5 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Problem Details</th>
-                <th className="px-5 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Feedback</th>
-                <th className="px-5 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Created</th>
+              <tr className="bg-slate-50 dark:bg-slate-950/50 border-b border-slate-100 dark:border-slate-800">
+                <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
+                <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Problem Details</th>
+                <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Created</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50 dark:divide-slate-700/50">
-              {filtered.map(problem => (
-                <tr 
-                  key={problem.id} 
-                  onClick={() => navigate(`/problem/${problem.id}`)}
-                  className="hover:bg-blue-50/50 dark:hover:bg-slate-700/50 transition-colors group cursor-pointer"
-                >
-                  <td className="px-5 py-4 align-top">
-                    {problem.stage === 'Published' || problem.endorsements >= 3 ? (
-                      <div className="p-2 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-full w-fit shadow-sm">
-                        <Check size={16} />
+            <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
+              {filtered.map(problem => {
+                const isEndorsed = problem.stage === 'Published' || problem.endorsements >= 3;
+                return (
+                  <tr 
+                    key={problem.id} 
+                    onClick={() => navigate(`/problem/${problem.id}`)}
+                    className="hover:bg-ucla-blue/[0.02] dark:hover:bg-ucla-gold/[0.02] transition-all group cursor-pointer"
+                  >
+                    <td className="px-6 py-6 w-32">
+                      <div className={`flex items-center justify-center w-10 h-10 rounded-2xl transition-transform group-hover:scale-110 ${
+                        isEndorsed 
+                        ? 'bg-green-100 dark:bg-green-500/10 text-green-600' 
+                        : 'bg-ucla-gold/10 text-ucla-gold'
+                      }`}>
+                        {isEndorsed ? <Check size={20} strokeWidth={3} /> : <Star size={20} fill={problem.endorsements > 0 ? "currentColor" : "none"} />}
                       </div>
-                    ) : (
-                      <div className="p-2 bg-yellow-100 dark:bg-[#FFD100]/20 text-yellow-600 dark:text-[#FFD100] rounded-full w-fit shadow-sm">
-                        <Star size={16} fill={problem.endorsements > 0 ? "currentColor" : "none"} />
+                    </td>
+                    <td className="px-6 py-6">
+                      <div className="flex items-center gap-3 mb-2">
+                        <span className="text-ucla-blue dark:text-ucla-gold font-black text-base tracking-tight">
+                          {problem.id}
+                        </span>
+                        <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-[10px] font-bold rounded-md">
+                          @{problem.author?.initials || '??'}
+                        </span>
                       </div>
-                    )}
-                    <p className="mt-2 text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase">{problem.stage}</p>
-                  </td>
-                  <td className="px-5 py-4 max-w-md">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-ucla-blue dark:text-[#FFD100] font-bold text-sm group-hover:underline">
-                        {problem.id}
-                      </span>
-                      <span className="text-xs text-gray-400 dark:text-gray-500">by {problem.author?.initials}</span>
-                    </div>
-                    
-                    <p className="text-sm text-gray-600 dark:text-gray-300 mb-2 italic truncate pr-4">
-                      {stripFormatting(problem.latex)}
-                    </p>
-
-                    {/* Updated Tags Area */}
-                    <div className="flex flex-wrap gap-2 mb-1">
-                      {problem.quality && (
-                        <span className="px-2 py-0.5 bg-yellow-50 dark:bg-[#FFD100]/10 text-yellow-700 dark:text-[#FFD100] text-[10px] font-bold rounded uppercase tracking-wider border border-yellow-200 dark:border-[#FFD100]/20">
-                          Diff: {problem.quality}
-                        </span>
-                      )}
-                      {(problem.topics || []).map(t => (
-                        <span key={t} className="px-2 py-0.5 bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 text-[10px] font-bold rounded uppercase tracking-wider">
-                          {t}
-                        </span>
-                      ))}
-                    </div>
-                  </td>
-                  <td className="px-5 py-4 align-top">
-                    <div className="space-y-2">
-                      {problem.feedbacks && problem.feedbacks.length > 0 ? (
-                        problem.feedbacks.slice(0, 1).map(fb => (
-                          <div key={fb.id} className="text-xs flex gap-2 items-center">
-                            <div className={`w-1 h-3 rounded-full ${fb.isEndorsement ? 'bg-[#FFD100]' : 'bg-red-400'}`}></div>
-                            <p className="text-gray-500 dark:text-gray-400 truncate max-w-[120px]">{fb.feedback}</p>
-                          </div>
-                        ))
-                      ) : (
-                        <span className="text-xs text-gray-400 dark:text-gray-600 italic">No feedback yet</span>
-                      )}
-                      {problem.feedbacks?.length > 1 && (
-                        <p className="text-[10px] text-gray-400 dark:text-gray-500 font-medium">+{problem.feedbacks.length - 1} more</p>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-5 py-4 text-xs font-medium text-gray-400 dark:text-gray-500 align-top">
-                    {new Date(problem.createdAt).toLocaleDateString()}
-                  </td>
-                </tr>
-              ))}
+                      <p className="text-sm text-slate-600 dark:text-slate-300 mb-3 line-clamp-1 font-medium opacity-80">
+                        {problem.latex ? problem.latex.replace(/[$#\\]/g, '').substring(0, 80) + '...' : 'No content...'}
+                      </p>
+                      <div className="flex gap-2">
+                        {problem.quality && (
+                          <span className="px-2 py-1 bg-ucla-blue/5 dark:bg-ucla-blue/20 text-ucla-blue dark:text-blue-300 text-[10px] font-black rounded-lg border border-ucla-blue/10">
+                            LVL {problem.quality}
+                          </span>
+                        )}
+                        {(problem.topics || []).map(t => (
+                          <span key={t} className="px-2 py-1 bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-[10px] font-bold rounded-lg uppercase tracking-tighter">
+                            {t}
+                          </span>
+                        ))}
+                      </div>
+                    </td>
+                    <td className="px-6 py-6 text-right">
+                      <p className="text-xs font-bold text-slate-400 dark:text-slate-500">
+                        {new Date(problem.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                      </p>
+                      <p className="text-[10px] text-slate-300 dark:text-slate-600 mt-1 uppercase font-black">{problem.stage}</p>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
+          {filtered.length === 0 && (
+            <div className="py-20 text-center">
+              <p className="text-slate-400 font-medium italic">No problems found matching those filters...</p>
+            </div>
+          )}
         </div>
       </div>
     </Layout>
