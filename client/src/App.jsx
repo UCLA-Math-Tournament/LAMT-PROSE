@@ -3,7 +3,6 @@ import { AuthProvider, useAuth } from './utils/AuthContext';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
-import Home from './pages/Home';
 import Dashboard from './pages/Dashboard';
 import WriteProblem from './pages/WriteProblem';
 import ProblemInventory from './pages/ProblemInventory';
@@ -35,7 +34,8 @@ const PublicRoute = ({ children }) => {
       </div>
     );
   }
-  return user ? <Navigate to="/home" /> : children;
+  // Changed redirect from /home to /dashboard
+  return user ? <Navigate to="/dashboard" /> : children;
 };
 
 function App() {
@@ -43,11 +43,12 @@ function App() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
+          {/* Public Routes */}
           <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
           <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
           <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
 
-          <Route path="/home" element={<PrivateRoute><Home /></PrivateRoute>} />
+          {/* Private Routes */}
           <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
           <Route path="/write" element={<PrivateRoute><WriteProblem /></PrivateRoute>} />
           <Route path="/write/:id" element={<PrivateRoute><WriteProblem /></PrivateRoute>} />
@@ -61,7 +62,8 @@ function App() {
           <Route path="/users/:id" element={<PrivateRoute><UserProfile /></PrivateRoute>} />
           <Route path="/profile" element={<PrivateRoute><UserProfile /></PrivateRoute>} />
 
-          <Route path="/" element={<Navigate to="/home" />} />
+          {/* Fallback Route: Redirect root to dashboard */}
+          <Route path="/" element={<Navigate to="/dashboard" />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>
