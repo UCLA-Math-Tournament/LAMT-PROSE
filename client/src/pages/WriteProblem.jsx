@@ -117,9 +117,8 @@ const WriteProblem = () => {
           </div>
           <div>
             <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tight uppercase italic">
-              Bruin <span className="text-ucla-blue dark:text-ucla-gold not-italic">Blueprint</span>
+              Bruin <span className="text-ucla-blue dark:text-ucla-gold not-italic">Problem Writing</span>
             </h1>
-            <p className="text-slate-500 dark:text-slate-400 font-medium">Drafting the next generation of math excellence.</p>
           </div>
         </div>
 
