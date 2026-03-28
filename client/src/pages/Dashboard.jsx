@@ -393,68 +393,6 @@ const Dashboard = () => {
                 </button>
               </form>
             </div>
-
-            {/* PROSE Explanation */}
-            <div className="bg-white rounded-xl shadow-lg p-8">
-              <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                <Info size={24} className="text-ucla-blue"/>
-                About PROSE
-              </h2>
-              <p className="text-gray-600 mb-6">
-                <strong>PROSE</strong> (Problem Repository and Organization System for Exams) is the platform your team uses to write, review, and organize math competition problems from start to finish.
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <div className="flex items-start gap-3">
-                    <span className="text-2xl">✍️</span>
-                    <div>
-                      <h3 className="font-semibold text-gray-800">Write Problems</h3>
-                      <p className="text-sm text-gray-500">Submit new problems via the Write tab. Include the problem statement, answer, solution, and difficulty.</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <span className="text-2xl">💬</span>
-                    <div>
-                      <h3 className="font-semibold text-gray-800">Give Feedback</h3>
-                      <p className="text-sm text-gray-500">Review others' problems and leave detailed feedback to help improve quality before they're finalized.</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <span className="text-2xl">✅</span>
-                    <div>
-                      <h3 className="font-semibold text-gray-800">Endorse Problems</h3>
-                      <p className="text-sm text-gray-500">Senior members can endorse problems that meet the quality bar, marking them ready for test assembly.</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="space-y-4">
-                  <div className="flex items-start gap-3">
-                    <span className="text-2xl">📋</span>
-                    <div>
-                      <h3 className="font-semibold text-gray-800">Problem Inventory</h3>
-                      <p className="text-sm text-gray-500">Browse the full bank of submitted problems. Filter by subject, difficulty, or status to find what you need.</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <span className="text-2xl">📝</span>
-                    <div>
-                      <h3 className="font-semibold text-gray-800">View Tests</h3>
-                      <p className="text-sm text-gray-500">See how endorsed problems have been assembled into tests and review the final exam sets.</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <span className="text-2xl">🏆</span>
-                    <div>
-                      <h3 className="font-semibold text-gray-800">Leaderboard</h3>
-                      <p className="text-sm text-gray-500">Track contribution stats across the team. Click any member's row to view their full problem list.</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
       </div>
     </Layout>
   );
