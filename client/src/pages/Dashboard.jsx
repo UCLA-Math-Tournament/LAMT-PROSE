@@ -384,7 +384,7 @@ const Dashboard = () => {
                   />
                 </div>
 
-                <button
+<button
                   type="submit"
                   disabled={profileSubmitting}
                   className="w-full bg-ucla-blue text-white py-3 rounded-lg transition-colors hover:bg-blue-800 disabled:opacity-50 font-semibold mt-4"
@@ -393,6 +393,9 @@ const Dashboard = () => {
                 </button>
               </form>
             </div>
+          </div>
+        )}  
+
       </div>
     </Layout>
   );
