@@ -15,7 +15,8 @@ const ProblemInventory = () => {
   const [search, setSearch] = useState('');
   const [stageFilter, setStageFilter] = useState('all');
   const [topicFilter, setTopicFilter] = useState('all');
-  const [difficultyFilter, setDifficultyFilter] = useState('all'); // Added state
+  const [difficultyFilter, setDifficultyFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('newest'); // Added sorting state
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -40,7 +41,8 @@ const ProblemInventory = () => {
   const totalProblems = problems.length;
   const progressPercent = Math.min((totalProblems / 200) * 100, 100);
 
-  const filtered = problems.filter(p => {
+  // First filter the problems
+  let filtered = problems.filter(p => {
     const matchesSearch = search === '' || 
       (p.id || '').toLowerCase().includes(search.toLowerCase()) ||
       (p.latex || '').toLowerCase().includes(search.toLowerCase());
@@ -50,11 +52,25 @@ const ProblemInventory = () => {
       
     const matchesTopic = topicFilter === 'all' || (p.topics || []).includes(topicFilter);
     
-    // Added difficulty match logic (safely parsing strings to integers!)
     const matchesDifficulty = difficultyFilter === 'all' || 
       parseInt(p.quality) === parseInt(difficultyFilter);
     
     return matchesSearch && matchesStage && matchesTopic && matchesDifficulty;
+  });
+
+  // Then sort the filtered results
+  filtered = filtered.sort((a, b) => {
+    if (sortBy === 'diff-asc') {
+      return (parseInt(a.quality) || 0) - (parseInt(b.quality) || 0);
+    }
+    if (sortBy === 'diff-desc') {
+      return (parseInt(b.quality) || 0) - (parseInt(a.quality) || 0);
+    }
+    if (sortBy === 'oldest') {
+      return new Date(a.createdAt) - new Date(b.createdAt);
+    }
+    // Default: newest first
+    return new Date(b.createdAt) - new Date(a.createdAt);
   });
 
   const topicCounts = filtered.reduce((acc, p) => {
@@ -95,7 +111,6 @@ const ProblemInventory = () => {
         <p className="text-gray-600 mb-6">Tracking progress toward 200 problems</p>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-          {/* ... Chart Code Remains Unchanged ... */}
           <div className="lg:col-span-1 bg-white rounded-lg shadow-md p-6">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Total Problems</h2>
@@ -158,6 +173,7 @@ const ProblemInventory = () => {
           </div>
         </div>
 
+        {/* Filters and Search */}
         <div className="bg-white rounded-lg shadow-sm p-4 flex flex-wrap gap-4 items-center mb-6">
           <input
             type="text"
@@ -167,7 +183,17 @@ const ProblemInventory = () => {
             className="flex-1 min-w-[200px] px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ucla-blue focus:border-transparent outline-none"
           />
           
-          {/* Added Difficulty Dropdown */}
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ucla-blue outline-none bg-gray-50"
+          >
+            <option value="newest">Newest First</option>
+            <option value="oldest">Oldest First</option>
+            <option value="diff-desc">Difficulty (High-Low)</option>
+            <option value="diff-asc">Difficulty (Low-High)</option>
+          </select>
+
           <select
             value={difficultyFilter}
             onChange={(e) => setDifficultyFilter(e.target.value)}
@@ -215,71 +241,80 @@ const ProblemInventory = () => {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-100">
-                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Problem Details</th>
-                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Feedback</th>
-                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Created</th>
+                <th className="px-4 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Status</th>
+                <th className="px-4 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Problem Details</th>
+                <th className="px-4 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Feedback</th>
+                <th className="px-4 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Created</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
               {filtered.map(problem => (
-                <tr key={problem.id} className="hover:bg-blue-50/30 transition-colors group">
-                  <td className="px-6 py-4 align-top">
+                <tr 
+                  key={problem.id} 
+                  onClick={() => navigate(`/problem/${problem.id}`)}
+                  className="hover:bg-blue-50/30 transition-colors group cursor-pointer"
+                >
+                  <td className="px-4 py-2 align-top">
                     {problem.stage === 'Published' || problem.endorsements >= 3 ? (
-                      <div className="p-2 bg-green-100 text-green-600 rounded-full w-fit shadow-sm">
-                        <Check size={18} />
+                      <div className="p-1.5 bg-green-100 text-green-600 rounded-full w-fit shadow-sm">
+                        <Check size={16} />
                       </div>
                     ) : (
-                      <div className="p-2 bg-yellow-100 text-yellow-600 rounded-full w-fit shadow-sm">
-                        <Star size={18} fill={problem.endorsements > 0 ? "currentColor" : "none"} />
+                      <div className="p-1.5 bg-yellow-100 text-yellow-600 rounded-full w-fit shadow-sm">
+                        <Star size={16} fill={problem.endorsements > 0 ? "currentColor" : "none"} />
                       </div>
                     )}
-                    <p className="mt-2 text-[10px] font-bold text-gray-400 uppercase">{problem.stage}</p>
+                    <p className="mt-1 text-[10px] font-bold text-gray-400 uppercase">{problem.stage}</p>
                   </td>
-                  <td className="px-6 py-4 max-w-md">
-                    <div className="flex items-center gap-3 mb-1">
-                      <button onClick={() => navigate(`/problem/${problem.id}`)} className="text-ucla-blue font-bold hover:underline">
+                  <td className="px-4 py-2 max-w-md">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className="text-ucla-blue font-bold group-hover:underline">
                         {problem.id}
-                      </button>
+                      </span>
                       <span className="text-xs text-gray-400">by {problem.author?.initials}</span>
                     </div>
                     
-                    <p className="text-sm text-gray-600 mb-3 italic">
+                    <p className="text-xs text-gray-600 mb-1.5 italic truncate">
                       {stripFormatting(problem.latex)}
                     </p>
 
-                    <div className="flex flex-wrap gap-2 mb-3">
-                      {/* Added difficulty visual tag */}
+                    <div className="flex flex-wrap gap-1.5 mb-1">
                       {problem.quality && (
-                        <span className="px-2 py-0.5 bg-yellow-50 text-yellow-700 text-[10px] font-bold rounded uppercase tracking-tighter border border-yellow-200">
+                        <span className="px-1.5 py-0.5 bg-yellow-50 text-yellow-700 text-[10px] font-bold rounded uppercase tracking-tighter border border-yellow-200">
                           Diff: {problem.quality}
                         </span>
                       )}
                       {(problem.topics || []).map(t => (
-                        <span key={t} className="px-2 py-0.5 bg-gray-100 text-gray-600 text-[10px] font-bold rounded uppercase tracking-tighter">
+                        <span key={t} className="px-1.5 py-0.5 bg-gray-100 text-gray-600 text-[10px] font-bold rounded uppercase tracking-tighter">
                           {t}
                         </span>
                       ))}
-                      <span className="px-2 py-0.5 bg-blue-50 text-ucla-blue text-[10px] font-bold rounded uppercase tracking-tighter">
-                        {problem.examType || 'Numerical Answer'}
-                      </span>
+                      {/* Only show Exam Type if it exists AND is not 'Numerical Answer' */}
+                      {problem.examType && problem.examType !== 'Numerical Answer' && (
+                        <span className="px-1.5 py-0.5 bg-blue-50 text-ucla-blue text-[10px] font-bold rounded uppercase tracking-tighter">
+                          {problem.examType}
+                        </span>
+                      )}
                     </div>
                   </td>
-                  <td className="px-6 py-4 align-top">
-                    <div className="space-y-2">
+                  <td className="px-4 py-2 align-top">
+                    <div className="space-y-1">
                       {problem.feedbacks && problem.feedbacks.length > 0 ? (
-                        problem.feedbacks.slice(0, 3).map(fb => (
-                          <div key={fb.id} className="text-xs flex gap-2">
-                            <div className={`w-1 h-auto rounded-full ${fb.isEndorsement ? 'bg-yellow-400' : 'bg-red-400'}`}></div>
-                            <p className="text-gray-500 truncate max-w-[150px]">{fb.feedback}</p>
+                        problem.feedbacks.slice(0, 1).map(fb => (
+                          <div key={fb.id} className="text-xs flex gap-1.5 items-center">
+                            <div className={`w-1 h-3 rounded-full ${fb.isEndorsement ? 'bg-yellow-400' : 'bg-red-400'}`}></div>
+                            <p className="text-gray-500 truncate max-w-[120px]">{fb.feedback}</p>
                           </div>
                         ))
                       ) : (
                         <span className="text-xs text-gray-300 italic">No feedback yet</span>
                       )}
+                      {problem.feedbacks?.length > 1 && (
+                        <p className="text-[10px] text-gray-400">+{problem.feedbacks.length - 1} more</p>
+                      )}
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-xs text-gray-400 align-top">
+                  <td className="px-4 py-2 text-xs text-gray-400 align-top">
                     {new Date(problem.createdAt).toLocaleDateString()}
                   </td>
                 </tr>
