@@ -1,6 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Edit, Clock, User, Trash2, Star, ChevronDown, ChevronUp, CheckCircle, Image as ImageIcon, X, ArrowRightLeft } from 'lucide-react';
+import { 
+  Edit, Clock, User, Trash2, Star, ChevronDown, ChevronUp, 
+  CheckCircle, Image as ImageIcon, X, ArrowRightLeft, 
+  AlertCircle, Save, ArrowLeft 
+} from 'lucide-react';
 import api from '../utils/api';
 import Layout from '../components/Layout';
 import KatexRenderer from '../components/KatexRenderer';
@@ -23,7 +27,7 @@ const ProblemDetail = () => {
   const [editedTopics, setEditedTopics] = useState([]);
   const [editedDifficulty, setEditedDifficulty] = useState(5);
   const [editedStage, setEditedStage] = useState('');
-  const [editedImages, setEditedImages] = useState([]); // Array of { dataUrl, destination }
+  const [editedImages, setEditedImages] = useState([]); 
 
   // UI toggles
   const [showSolution, setShowSolution] = useState(false);
@@ -32,7 +36,6 @@ const ProblemDetail = () => {
   const [editingFeedbackId, setEditingFeedbackId] = useState(null);
   const [editedFeedbackComment, setEditedFeedbackComment] = useState('');
 
-  // Helper to extract base64 markdown images from text to populate the UI editor
   const extractImages = (text, destination) => {
     if (!text) return { cleanText: '', extractedImages: [] };
     const images = [];
@@ -63,7 +66,6 @@ const ProblemDetail = () => {
       setEditedLatex(cleanLatex);
       setEditedSolution(cleanSolution);
       setEditedImages([...latexImages, ...solImages]);
-      
       setEditedAnswer(data.answer || '');
       setEditedNotes(data.notes || '');
       setEditedTopics(data.topics || []);
@@ -141,48 +143,19 @@ const ProblemDetail = () => {
     }
   };
 
-  const handleEndorse = async () => {
-    try {
-      await api.post('/feedback', {
-        problemId: id,
-        isEndorsement: true,
-        feedback: 'Problem endorsed.'
-      });
-      setMessage('Problem endorsed successfully!');
-      fetchProblem();
-    } catch (error) {
-      setMessage(error.response?.data?.error || 'Failed to endorse problem');
-    }
-  };
-
   const handleResolveFeedback = async (fbId) => {
     if (!resolveComment.trim()) {
-      setMessage('You must provide a comment explaining the resolution.');
+      setMessage('Resolution comment is required.');
       return;
     }
     try {
-      await api.put(`/feedback/${fbId}/resolve`, {
-        comment: resolveComment
-      });
-      setMessage('Feedback marked as resolved.');
+      await api.put(`/feedback/${fbId}/resolve`, { comment: resolveComment });
+      setMessage('Feedback resolved.');
       setResolvingId(null);
       setResolveComment('');
       fetchProblem();
     } catch (error) {
-      setMessage(error.response?.data?.error || 'Failed to resolve feedback');
-    }
-  };
-
-  const handleEditFeedback = async (fbId) => {
-    try {
-      await api.patch(`/feedback/${fbId}`, {
-        comment: editedFeedbackComment
-      });
-      setMessage('Feedback updated.');
-      setEditingFeedbackId(null);
-      fetchProblem();
-    } catch (error) {
-      setMessage('Failed to update feedback');
+      setMessage('Failed to resolve feedback');
     }
   };
 
@@ -190,390 +163,311 @@ const ProblemDetail = () => {
 
   if (loading) return (
     <Layout>
-      <div className="flex justify-center items-center h-64">
-        <div className="text-gray-500">Loading...</div>
+      <div className="flex flex-col justify-center items-center h-96 space-y-4">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-ucla-blue"></div>
+        <p className="text-gray-400 font-medium italic">Fetching problem data...</p>
       </div>
     </Layout>
   );
 
   if (!problem) return (
     <Layout>
-      <div className="text-center py-12">
+      <div className="text-center py-20">
+        <AlertCircle className="mx-auto text-gray-300 mb-4" size={64} />
         <h2 className="text-2xl font-bold text-gray-800">Problem Not Found</h2>
+        <button onClick={() => navigate('/inventory')} className="mt-4 text-ucla-blue hover:underline flex items-center gap-2 mx-auto">
+          <ArrowLeft size={16} /> Back to Inventory
+        </button>
       </div>
     </Layout>
   );
 
   const canEdit = problem._isAuthor || problem._isAdmin;
+
   return (
     <Layout>
-      <div className="max-w-6xl mx-auto">
-        <div className="flex justify-between items-start mb-6">
+      <div className="max-w-6xl mx-auto pb-20">
+        {/* Header Section */}
+        <div className="flex flex-col md:flex-row justify-between items-start mb-8 gap-4">
           <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-3xl font-bold text-ucla-blue">Problem {problem.id}</h1>
-              <span className={`px-3 py-1 text-sm rounded-full font-bold shadow-sm ${
+            <div className="flex items-center gap-3 flex-wrap">
+              <h1 className="text-4xl font-black text-ucla-blue tracking-tight">Problem {problem.id}</h1>
+              <span className={`px-4 py-1 text-xs uppercase tracking-widest rounded-full font-black shadow-sm flex items-center gap-1.5 ${
                 problem._displayStatus === 'needs_review' ? 'bg-red-500 text-white' :
-                problem._displayStatus === 'endorsed' ? 'bg-yellow-400 text-yellow-900' :
+                problem._displayStatus === 'endorsed' ? 'bg-[#FFD100] text-ucla-blue' :
                 'bg-ucla-blue text-white'
               }`}>
+                {problem._displayStatus === 'needs_review' && <AlertCircle size={14} />}
+                {problem._displayStatus === 'endorsed' && <Star size={14} className="fill-current" />}
                 {problem._displayStatus === 'needs_review' ? 'Needs Review' : 
                  problem._displayStatus === 'endorsed' ? 'Endorsed' : problem.stage}
               </span>
             </div>
-            <p className="text-gray-600 mt-2">by {problem.author.firstName} {problem.author.lastName}</p>
+            <div className="flex items-center gap-2 mt-3 text-gray-500 font-medium">
+              <div className="w-8 h-8 rounded-full bg-ucla-blue/10 flex items-center justify-center text-ucla-blue">
+                <User size={16} />
+              </div>
+              <span>{problem.author.firstName} {problem.author.lastName}</span>
+            </div>
           </div>
           
-          <div className="flex gap-2">
+          <div className="flex gap-3 w-full md:w-auto">
             {canEdit && (
               <>
-                <button onClick={() => setIsEditing(!isEditing)} className="flex items-center gap-2 px-4 py-2 bg-ucla-blue text-white rounded-lg hover:bg-ucla-dark-blue shadow-sm font-bold transition-all">
-                  <Edit size={18} /> {isEditing ? 'Cancel' : 'Edit'}
+                <button 
+                  onClick={() => setIsEditing(!isEditing)} 
+                  className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl font-bold transition-all shadow-md ${
+                    isEditing ? 'bg-gray-200 text-gray-700 hover:bg-gray-300' : 'bg-ucla-blue text-white hover:bg-ucla-dark-blue'
+                  }`}
+                >
+                  {isEditing ? <X size={18} /> : <Edit size={18} />} 
+                  {isEditing ? 'Cancel' : 'Edit Problem'}
                 </button>
-                <button onClick={handleDelete} className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 shadow-sm font-bold transition-all">
-                  <Trash2 size={18} /> Delete
-                </button>
+                {!isEditing && (
+                  <button onClick={handleDelete} className="p-2.5 text-red-500 hover:bg-red-50 rounded-xl transition-colors border border-transparent hover:border-red-100">
+                    <Trash2 size={22} />
+                  </button>
+                )}
               </>
             )}
           </div>
         </div>
 
         {message && (
-          <div className={`mb-6 p-4 rounded-lg border font-medium ${message.includes('Failed') ? 'bg-red-50 border-red-200 text-red-700' : 'bg-green-50 border-green-200 text-green-700'}`}>
+          <div className={`mb-8 p-4 rounded-xl border-l-4 font-bold text-sm animate-in fade-in slide-in-from-top-2 ${
+            message.includes('Failed') ? 'bg-red-50 border-red-500 text-red-700' : 'bg-green-50 border-green-500 text-green-700'
+          }`}>
             {message}
           </div>
         )}
 
-        {/* EDITOR + PREVIEW BLOCK */}
-        <div className="bg-white rounded-lg shadow-md p-8 mb-6">
-          <h2 className="text-sm font-bold text-gray-500 uppercase mb-6 tracking-wider border-b pb-2">Problem Statement</h2>
-          {isEditing ? (
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Left: editors */}
-                <div className="space-y-6">
-                  <div>
-                    <label className="block text-sm font-medium mb-1">LaTeX Content</label>
-                    <textarea 
-                      value={editedLatex} 
-                      onChange={(e) => setEditedLatex(e.target.value)}
-                      rows={8}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg font-mono text-sm focus:ring-2 focus:ring-ucla-blue outline-none"
-                    />
-                  </div>
+        {/* Content Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          
+          {/* Main Content Column */}
+          <div className="lg:col-span-8 space-y-8">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+              <div className="px-8 py-4 bg-gray-50/50 border-b border-gray-100 flex justify-between items-center">
+                <h2 className="text-xs font-black text-gray-400 uppercase tracking-widest">Problem Statement</h2>
+                {isEditing && <span className="text-[10px] font-bold text-ucla-blue bg-ucla-blue/10 px-2 py-0.5 rounded uppercase">Editing Mode</span>}
+              </div>
 
-                  {/* Images editor */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Attachments / Images
-                    </label>
-                    <div className="flex flex-wrap gap-4 mt-2">
-                      {editedImages.map((img, idx) => (
-                        <div key={idx} className="relative w-24 h-28 border border-gray-200 rounded-lg overflow-hidden group flex flex-col shadow-sm">
-                          <div className="h-20 w-full overflow-hidden bg-gray-50">
-                            <img src={img.dataUrl} alt="upload preview" className="w-full h-full object-contain" />
+              <div className="p-8">
+                {isEditing ? (
+                  <div className="space-y-6">
+                    <div>
+                      <textarea 
+                        value={editedLatex} 
+                        onChange={(e) => setEditedLatex(e.target.value)}
+                        rows={10}
+                        placeholder="Type LaTeX here..."
+                        className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-xl font-mono text-sm focus:ring-2 focus:ring-ucla-blue focus:bg-white outline-none transition-all"
+                      />
+                    </div>
+                    
+                    {/* Images upload area */}
+                    <div className="p-4 bg-slate-50 rounded-xl border border-dashed border-slate-300">
+                      <p className="text-xs font-bold text-slate-500 uppercase mb-4 ml-1">Attached Visuals</p>
+                      <div className="flex flex-wrap gap-4">
+                        {editedImages.map((img, idx) => (
+                          <div key={idx} className="relative w-28 h-32 border border-white bg-white rounded-xl overflow-hidden group shadow-sm">
+                            <img src={img.dataUrl} alt="preview" className="w-full h-20 object-cover" />
+                            <button
+                              type="button"
+                              onClick={() => toggleImageDestination(idx)}
+                              className={`w-full h-12 flex items-center justify-center text-[9px] font-black uppercase transition-colors px-2 text-center leading-tight ${
+                                img.destination === 'problem' ? 'bg-blue-50 text-ucla-blue' : 'bg-purple-50 text-purple-700'
+                              }`}
+                            >
+                              To {img.destination}
+                            </button>
+                            <button
+                              onClick={() => removeImage(idx)}
+                              className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <X size={12} />
+                            </button>
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => toggleImageDestination(idx)}
-                            className={`flex-1 flex items-center justify-center text-[10px] font-bold uppercase tracking-wide transition-colors ${
-                              img.destination === 'problem' 
-                                ? 'bg-blue-100 text-ucla-blue hover:bg-blue-200' 
-                                : 'bg-purple-100 text-purple-700 hover:bg-purple-200'
-                            }`}
-                            title="Click to move image"
-                          >
-                            {img.destination} <ArrowRightLeft size={10} className="ml-1 opacity-50" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => removeImage(idx)}
-                            className="absolute top-0 right-0 bg-red-500 text-white p-1 rounded-bl-lg opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            <X size={14} />
-                          </button>
-                        </div>
-                      ))}
-                      <label className="w-24 h-28 flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-400 transition-colors bg-gray-50">
-                        <ImageIcon size={24} className="text-gray-400" />
-                        <span className="text-[10px] text-gray-400 mt-2 font-medium uppercase tracking-wide">Upload</span>
-                        <input
-                          type="file"
-                          className="hidden"
-                          accept="image/*"
-                          multiple
-                          onChange={handleImageUpload}
-                        />
-                      </label>
+                        ))}
+                        <label className="w-28 h-32 flex flex-col items-center justify-center border-2 border-dashed border-slate-300 rounded-xl cursor-pointer hover:bg-white hover:border-ucla-blue transition-all group">
+                          <ImageIcon size={24} className="text-slate-300 group-hover:text-ucla-blue" />
+                          <span className="text-[10px] text-slate-400 mt-2 font-bold uppercase">Add Image</span>
+                          <input type="file" className="hidden" accept="image/*" multiple onChange={handleImageUpload} />
+                        </label>
+                      </div>
                     </div>
                   </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Writer's Solution</label>
-                    <textarea 
-                      value={editedSolution} 
-                      onChange={(e) => setEditedSolution(e.target.value)}
-                      rows={6}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg font-mono text-sm focus:ring-2 focus:ring-ucla-blue outline-none"
-                    />
-                  </div>
-                </div>
-
-                {/* Right: live preview */}
-                <div className="space-y-6">
-                  <div>
-                    <p className="text-xs font-bold text-gray-500 uppercase mb-2 tracking-wider">
-                      Problem Preview
-                    </p>
-                    <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 min-h-[100px]">
-                      <KatexRenderer latex={editedLatex} />
-                    </div>
-                  </div>
-
-                  <div>
-                    <p className="text-xs font-bold text-gray-500 uppercase mb-2 tracking-wider">
-                      Solution Preview
-                    </p>
-                    <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 min-h-[80px]">
-                      <KatexRenderer latex={editedSolution} />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Rest of fields below editor/preview */}
-              <div>
-                <label className="block text-sm font-medium mb-1">Final Answer</label>
-                <input 
-                  type="text" 
-                  value={editedAnswer}
-                  onChange={(e) => setEditedAnswer(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ucla-blue outline-none"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Difficulty (1-10)</label>
-                  <input 
-                    type="number" 
-                    min="1" 
-                    max="10"
-                    value={editedDifficulty}
-                    onChange={(e) => setEditedDifficulty(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ucla-blue outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Stage</label>
-                  <select 
-                    value={editedStage}
-                    onChange={(e) => setEditedStage(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ucla-blue outline-none"
-                  >
-                    {stageOptions.map(s => <option key={s} value={s}>{s}</option>)}
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">Notes (Private)</label>
-                <textarea 
-                  value={editedNotes} 
-                  onChange={(e) => setEditedNotes(e.target.value)}
-                  rows={4}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-ucla-blue outline-none"
-                />
-              </div>
-
-              <button 
-                onClick={handleSave}
-                className="w-full bg-ucla-blue text-white py-3 rounded-lg font-bold hover:bg-ucla-dark-blue transition-colors shadow-lg"
-              >
-                Save Changes
-              </button>
-            </div>
-          ) : (
-            <div className="prose max-w-none">
-              <div className="bg-gray-50 p-6 rounded-xl border border-gray-100 min-h-[100px]">
-                <KatexRenderer latex={problem.latex} />
-              </div>
-              <div className="mt-6 flex flex-wrap gap-2 items-center">
-                {(problem.quality !== undefined && problem.quality !== null) && (
-                  <span className="px-3 py-1 bg-blue-100 text-ucla-blue text-xs font-bold rounded-full border border-blue-200">
-                    Difficulty: {problem.quality}/10
-                  </span>
-                )}
-                {problem.topics.map(t => (
-                  <span key={t} className="px-3 py-1 bg-gray-100 text-gray-700 text-xs font-semibold rounded-full border border-gray-200">
-                    {t}
-                  </span>
-                ))}
-                <span className="ml-auto text-xs text-gray-400 flex items-center gap-1">
-                  <Clock size={14} /> {new Date(problem.createdAt).toLocaleDateString()}
-                </span>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Show-solution accordion unchanged */}
-        {!isEditing && (problem.solution || problem._isAdmin || problem._isAuthor) && (
-          <div className="bg-white rounded-lg shadow-md overflow-hidden mb-6">
-            <button 
-              onClick={() => setShowSolution(!showSolution)}
-              className="w-full flex justify-between items-center px-6 py-4 bg-gray-50 hover:bg-gray-100 transition-colors"
-            >
-              <div className="flex items-center gap-2 font-bold text-ucla-blue">
-                <CheckCircle size={20} /> Show Creator Solution
-              </div>
-              {showSolution ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-            </button>
-            {showSolution && (
-              <div className="p-8 border-t border-gray-100">
-                <h3 className="text-xs font-bold text-gray-400 uppercase mb-4 tracking-wider">Solution</h3>
-                <div className="prose max-w-none mb-6">
-                  {problem.solution ? (
-                    <KatexRenderer latex={problem.solution} />
-                  ) : (
-                    <p className="italic text-gray-400 text-sm">No solution provided by author.</p>
-                  )}
-                </div>
-                {problem.answer && (
-                  <div className="p-4 bg-ucla-blue/5 rounded-lg border border-ucla-blue/10">
-                    <span className="font-bold text-ucla-blue text-sm uppercase mr-2 tracking-tight">Final Answer:</span>
-                    <KatexRenderer latex={problem.answer} />
+                ) : (
+                  <div className="prose-math min-h-[120px]">
+                    <KatexRenderer latex={problem.latex} />
                   </div>
                 )}
-                {(problem.notes && (problem._isAdmin || problem._isAuthor)) && (
-                  <div className="mt-6 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-                    <span className="font-bold text-yellow-800 uppercase text-xs tracking-wider">Notes (Private):</span>
-                    <p className="mt-2 text-gray-700 text-sm whitespace-pre-wrap leading-relaxed">{problem.notes}</p>
+              </div>
+            </div>
+
+            {/* Solution Section */}
+            {!isEditing && (problem.solution || problem._isAdmin || problem._isAuthor) && (
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden transition-all">
+                <button 
+                  onClick={() => setShowSolution(!showSolution)}
+                  className="w-full flex justify-between items-center px-8 py-5 bg-gray-50/50 hover:bg-gray-50 transition-colors"
+                >
+                  <div className="flex items-center gap-3 font-black text-ucla-blue uppercase text-xs tracking-widest">
+                    <CheckCircle size={18} /> {showSolution ? 'Hide' : 'View'} Creator Solution
+                  </div>
+                  {showSolution ? <ChevronUp size={20} className="text-gray-400" /> : <ChevronDown size={20} className="text-gray-400" />}
+                </button>
+                {showSolution && (
+                  <div className="p-8 border-t border-gray-100 bg-white animate-in slide-in-from-top-4 duration-300">
+                    <div className="prose-math mb-8">
+                      {problem.solution ? <KatexRenderer latex={problem.solution} /> : <p className="italic text-gray-400 text-sm">No detailed solution provided.</p>}
+                    </div>
+                    {problem.answer && (
+                      <div className="p-5 bg-ucla-blue/[0.03] rounded-2xl border border-ucla-blue/10 flex items-center gap-4">
+                        <span className="font-black text-ucla-blue text-[10px] uppercase tracking-widest bg-ucla-blue/10 px-2 py-1 rounded">Final Answer</span>
+                        <div className="text-lg font-bold"><KatexRenderer latex={problem.answer} /></div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
             )}
-          </div>
-        )}
 
-        {/* Feedback block unchanged */}
-        <div className="bg-white rounded-lg shadow-md p-8">
-          <h2 className="text-xl font-bold text-gray-800 mb-8 flex items-center gap-2">
-            Feedback <span className="bg-gray-100 text-gray-500 px-2 py-0.5 rounded text-sm">{feedbacks.length}</span>
-          </h2>
-          {feedbacks.length === 0 ? (
-            <div className="text-center py-12 bg-gray-50 rounded-xl border border-dashed border-gray-200">
-              <p className="text-gray-400">No feedback yet. Authors can see reviews here.</p>
-            </div>
-          ) : (
-            <div className="space-y-6">
-              {feedbacks.map((fb) => (
-                <div key={fb.id} className={`border-l-4 pl-6 py-4 rounded-r-lg transition-all ${
-                  fb.isEndorsement ? 'border-yellow-400 bg-yellow-50/20' : 
-                  !fb.resolved ? 'border-red-500 bg-red-50/30' : 
-                  'border-gray-200 bg-gray-50/30'
-                }`}>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <p className="font-bold text-gray-900">{fb.user.firstName} {fb.user.lastName}</p>
-                        {fb.isEndorsement && <Star size={14} className="text-yellow-500 fill-yellow-500" />}
-                      </div>
-                      <p className="text-xs text-gray-500 font-medium">
-                        {new Date(fb.createdAt).toLocaleDateString()} · 
-                        <span className={`ml-1 ${fb.isEndorsement ? 'text-yellow-700' : fb.resolved ? 'text-green-700' : 'text-red-700'}`}>
-                          {fb.isEndorsement ? 'Endorsement' : fb.resolved ? 'Resolved Review' : 'Active Review'}
-                        </span>
-                      </p>
-                    </div>
-                    <div className="flex gap-3">
-                      {!fb.resolved && !fb.isEndorsement && (problem._isAuthor || problem._isAdmin) && (
-                        <button 
-                          onClick={() => setResolvingId(fb.id === resolvingId ? null : fb.id)}
-                          className="text-xs font-bold text-ucla-blue hover:underline"
-                        >
-                          {resolvingId === fb.id ? 'Cancel' : 'Mark as Resolved'}
-                        </button>
-                      )}
-                      {(fb.userId === problem._userId || problem._isAdmin) && (
-                        <button 
-                          onClick={() => {
-                            setEditingFeedbackId(fb.id);
-                            setEditedFeedbackComment(fb.feedback);
-                          }}
-                          className="text-xs font-bold text-gray-400 hover:text-gray-600 underline"
-                        >
-                          Edit
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                  
-                  {editingFeedbackId === fb.id ? (
-                    <div className="mt-4 space-y-3">
-                      <textarea 
-                        value={editedFeedbackComment}
-                        onChange={(e) => setEditedFeedbackComment(e.target.value)}
-                        className="w-full p-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-ucla-blue outline-none"
-                        rows={3}
-                      />
-                      <div className="flex gap-2">
-                        <button 
-                          onClick={() => handleEditFeedback(fb.id)}
-                          className="px-4 py-1.5 bg-ucla-blue text-white text-xs font-bold rounded-lg hover:bg-ucla-dark-blue transition-colors"
-                        >
-                          Update
-                        </button>
-                        <button 
-                          onClick={() => setEditingFeedbackId(null)}
-                          className="px-4 py-1.5 bg-gray-200 text-gray-600 text-xs font-bold rounded-lg"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="mt-3">
-                      <p className="text-gray-700 text-sm whitespace-pre-wrap leading-relaxed">{fb.feedback}</p>
-                      {fb.answer && (
-                        <p className="text-sm font-semibold text-gray-800 mt-3 bg-blue-50 px-3 py-2 rounded-lg border border-blue-100">
-                          <span className="text-gray-600 font-medium">Reviewer's answer:</span> {fb.answer}
-                        </p>
-                      )}
-                    </div>
-                  )}
-
-                  {resolvingId === fb.id && (
-                    <div className="mt-6 p-5 bg-white border border-red-100 rounded-xl shadow-sm">
-                      <label className="block text-xs font-bold text-gray-500 uppercase mb-2 tracking-wider">
-                        Resolution Comment <span className="text-red-500">*</span>
-                      </label>
-                      <textarea 
-                        value={resolveComment}
-                        onChange={(e) => setResolveComment(e.target.value)}
-                        placeholder="Describe how the feedback was addressed..."
-                        className="w-full p-3 border border-gray-300 rounded-lg text-sm mb-3 focus:ring-2 focus:ring-red-500 outline-none"
-                        rows={2}
-                        required
-                      />
-                      <button 
-                        onClick={() => handleResolveFeedback(fb.id)}
-                        className="w-full bg-red-600 text-white py-2 rounded-lg text-sm font-bold hover:bg-red-700 transition-colors"
-                      >
-                        Confirm Resolution
-                      </button>
-                    </div>
-                  )}
-
-                  {fb.resolved && (
-                    <div className="mt-3 text-xs font-bold text-green-700 flex items-center gap-1.5 bg-green-50 w-fit px-2 py-1 rounded">
-                      <CheckCircle size={14} /> Resolved
-                    </div>
-                  )}
+            {/* Editing Meta Info (only visible during edit) */}
+            {isEditing && (
+              <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 space-y-6">
+                <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest border-b pb-4">Metadata & Solution</h3>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2 ml-1">Solution LaTeX</label>
+                  <textarea 
+                    value={editedSolution} 
+                    onChange={(e) => setEditedSolution(e.target.value)}
+                    rows={6}
+                    className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-xl font-mono text-sm focus:ring-2 focus:ring-ucla-blue outline-none"
+                  />
                 </div>
-              ))}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase mb-2 ml-1">Answer</label>
+                    <input type="text" value={editedAnswer} onChange={(e) => setEditedAnswer(e.target.value)} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-ucla-blue outline-none" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase mb-2 ml-1">Stage</label>
+                    <select value={editedStage} onChange={(e) => setEditedStage(e.target.value)} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-ucla-blue outline-none font-bold">
+                      {stageOptions.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <button onClick={handleSave} className="w-full flex items-center justify-center gap-2 bg-ucla-blue text-white py-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-ucla-dark-blue transition-all shadow-xl shadow-ucla-blue/20">
+                  <Save size={18} /> Update Problem Record
+                </button>
+              </div>
+            )}
+
+            {/* Feedback Section */}
+            <div className="space-y-6">
+              <h2 className="text-xl font-black text-ucla-blue flex items-center gap-3">
+                Feedback <span className="bg-ucla-blue/10 text-ucla-blue px-3 py-0.5 rounded-full text-sm">{feedbacks.length}</span>
+              </h2>
+              {feedbacks.length === 0 ? (
+                <div className="text-center py-16 bg-white rounded-2xl border border-dashed border-gray-200">
+                  <p className="text-gray-400 font-medium">No reviews submitted yet.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {feedbacks.map((fb) => (
+                    <div key={fb.id} className={`bg-white border rounded-2xl p-6 shadow-sm transition-all ${
+                      fb.isEndorsement ? 'border-yellow-200' : fb.resolved ? 'border-gray-100 opacity-75' : 'border-red-100'
+                    }`}>
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs ${fb.isEndorsement ? 'bg-yellow-100 text-yellow-700' : 'bg-slate-100 text-slate-600'}`}>
+                            {fb.user.firstName[0]}{fb.user.lastName[0]}
+                          </div>
+                          <div>
+                            <p className="font-bold text-gray-900 leading-none mb-1">{fb.user.firstName} {fb.user.lastName}</p>
+                            <p className="text-[10px] text-gray-400 font-black uppercase tracking-tighter">
+                              {new Date(fb.createdAt).toLocaleDateString()} • 
+                              <span className={`ml-1 ${fb.isEndorsement ? 'text-yellow-600' : fb.resolved ? 'text-green-600' : 'text-red-600'}`}>
+                                {fb.isEndorsement ? 'Endorsement' : fb.resolved ? 'Resolved' : 'Review'}
+                              </span>
+                            </p>
+                          </div>
+                        </div>
+                        {!fb.resolved && !fb.isEndorsement && (problem._isAuthor || problem._isAdmin) && (
+                          <button onClick={() => setResolvingId(fb.id === resolvingId ? null : fb.id)} className="text-[10px] font-black uppercase tracking-widest text-ucla-blue hover:underline">
+                            {resolvingId === fb.id ? 'Cancel' : 'Resolve'}
+                          </button>
+                        )}
+                      </div>
+                      <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">{fb.feedback}</p>
+                      
+                      {resolvingId === fb.id && (
+                        <div className="mt-6 p-5 bg-slate-50 rounded-xl border border-slate-200 animate-in fade-in zoom-in-95">
+                          <textarea 
+                            value={resolveComment} 
+                            onChange={(e) => setResolveComment(e.target.value)}
+                            placeholder="How did you address this?" 
+                            className="w-full p-3 border border-gray-300 rounded-lg text-sm mb-3 focus:ring-2 focus:ring-ucla-blue outline-none"
+                            rows={2}
+                          />
+                          <button onClick={() => handleResolveFeedback(fb.id)} className="w-full bg-ucla-blue text-white py-2 rounded-lg text-xs font-bold uppercase tracking-widest hover:bg-ucla-dark-blue transition-colors">
+                            Confirm Resolution
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-          )}
+          </div>
+
+          {/* Sidebar / Info Column */}
+          <div className="lg:col-span-4 space-y-6">
+            <div className="sticky top-6 space-y-6">
+              {/* Difficulty Card */}
+              <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Problem Difficulty</p>
+                <div className="flex items-end gap-1">
+                  <span className="text-5xl font-black text-ucla-blue leading-none">{problem.quality || editedDifficulty}</span>
+                  <span className="text-xl font-bold text-gray-300 mb-1">/10</span>
+                </div>
+                <div className="mt-4 w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+                  <div 
+                    className="bg-ucla-blue h-full transition-all duration-1000" 
+                    style={{ width: `${(problem.quality || editedDifficulty) * 10}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Topics Card */}
+              <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Topic Tags</p>
+                <div className="flex flex-wrap gap-2">
+                  {problem.topics.length > 0 ? problem.topics.map(t => (
+                    <span key={t} className="px-3 py-1 bg-slate-100 text-slate-600 text-[10px] font-black uppercase tracking-tight rounded-md border border-slate-200">
+                      {t}
+                    </span>
+                  )) : <span className="text-gray-400 italic text-xs">No topics tagged.</span>}
+                </div>
+              </div>
+
+              {/* Preview Sync Card (Only when editing) */}
+              {isEditing && (
+                <div className="bg-ucla-blue p-6 rounded-2xl shadow-xl shadow-ucla-blue/20 text-white animate-in slide-in-from-right-4">
+                  <p className="text-[10px] font-black text-white/60 uppercase tracking-widest mb-4">Live Render</p>
+                  <div className="bg-white/10 p-4 rounded-xl backdrop-blur-sm border border-white/10 overflow-x-auto min-h-[100px]">
+                    <KatexRenderer latex={editedLatex} />
+                  </div>
+                  <p className="text-[9px] mt-4 font-bold text-white/50 leading-tight italic">
+                    Images are temporarily hidden in preview mode to maximize performance.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
         </div>
       </div>
     </Layout>
