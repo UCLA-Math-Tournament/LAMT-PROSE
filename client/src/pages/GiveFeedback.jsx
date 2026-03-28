@@ -24,6 +24,7 @@ const GiveFeedback = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterTopic, setFilterTopic] = useState('');
   const [filterStage, setFilterStage] = useState('');
+  const [filterDifficulty, setFilterDifficulty] = useState(''); // New state for difficulty
   const [reviewableProblems, setReviewableProblems] = useState([]);
   const [reviewableLoading, setReviewableLoading] = useState(false);
 
@@ -97,6 +98,8 @@ const GiveFeedback = () => {
       const params = new URLSearchParams();
       if (filterTopic) params.append('topic', filterTopic);
       if (filterStage) params.append('stage', filterStage);
+      // If your API supports filtering by difficulty natively, you can append it here:
+      // if (filterDifficulty) params.append('quality', filterDifficulty);
       const res = await api.get(`/feedback/reviewable?${params.toString()}`);
       setReviewableProblems(res.data);
     } catch (error) {
@@ -153,10 +156,14 @@ const GiveFeedback = () => {
       .replace(/\\\\$\\\\$[^$]+\\\\$\\\\$ /g, '')
       .replace(/[#*`]/g, '')
       .replace(/\\\\\\\\/g, '')
-      .substring(0, 150) + (text.length > 150 ? '...' : '');
+      .substring(0, 50) + (text.length > 50 ? '...' : ''); // Reduced to 50 chars
   };
 
   const filteredProblems = reviewableProblems.filter((p) => {
+    // Check difficulty match
+    if (filterDifficulty && p.quality !== parseInt(filterDifficulty)) return false;
+    
+    // Check search query match
     if (!searchQuery) return true;
     return (
       p.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -210,7 +217,7 @@ const GiveFeedback = () => {
             <h2 className="text-xl font-bold text-gray-800 mb-6">Select a Problem to Review</h2>
             
             <div className="flex flex-wrap gap-4 mb-8">
-              <div className="flex-1 min-w-[300px] relative">
+              <div className="flex-1 min-w-[200px] relative">
                 <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
                   type="text"
@@ -220,6 +227,19 @@ const GiveFeedback = () => {
                   className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-ucla-blue outline-none"
                 />
               </div>
+              
+              {/* Added Difficulty Filter */}
+              <select
+                value={filterDifficulty}
+                onChange={(e) => setFilterDifficulty(e.target.value)}
+                className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-ucla-blue outline-none"
+              >
+                <option value="">All Difficulties</option>
+                {[...Array(10)].map((_, i) => (
+                  <option key={i + 1} value={i + 1}>Difficulty: {i + 1}</option>
+                ))}
+              </select>
+
               <select
                 value={filterTopic}
                 onChange={(e) => setFilterTopic(e.target.value)}
@@ -282,6 +302,7 @@ const GiveFeedback = () => {
           </div>
         )}
 
+        {/* ... Rest of the Problem display code remains identical ... */}
         {problem && (
           <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
             <div className="bg-gray-50/50 px-8 py-6 border-b border-gray-100 flex justify-between items-center">
