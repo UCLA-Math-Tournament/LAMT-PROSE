@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ReferenceLine, ResponsiveContainer
+import { 
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ReferenceLine, ResponsiveContainer,
+  BarChart, Bar, Cell
 } from 'recharts';
-import { Check, X, Star } from 'lucide-react';
+import { Check, X, Star, Eye, EyeOff } from 'lucide-react';
 import api from '../utils/api';
 import Layout from '../components/Layout';
+import KatexRenderer from '../components/KatexRenderer';
 
 const ProblemInventory = () => {
   const navigate = useNavigate();
@@ -15,6 +17,7 @@ const ProblemInventory = () => {
   const [stageFilter, setStageFilter] = useState('all');
   const [topicFilter, setTopicFilter] = useState('all');
   const [loading, setLoading] = useState(true);
+  const [showSolutions, setShowSolutions] = useState({});
 
   useEffect(() => {
     fetchData();
@@ -39,14 +42,33 @@ const ProblemInventory = () => {
   const progressPercent = Math.min((totalProblems / 200) * 100, 100);
 
   const filtered = problems.filter(p => {
-    const matchesSearch =
-      search === '' ||
+    const matchesSearch = search === '' || 
       (p.id || '').toLowerCase().includes(search.toLowerCase()) ||
       (p.latex || '').toLowerCase().includes(search.toLowerCase());
     const matchesStage = stageFilter === 'all' || p.stage === stageFilter;
     const matchesTopic = topicFilter === 'all' || (p.topics || []).includes(topicFilter);
     return matchesSearch && matchesStage && matchesTopic;
   });
+
+  // Dynamic counts by examType
+  const typeCounts = filtered.reduce((acc, p) => {
+    const type = p.examType || 'Numerical Answer';
+    acc[type] = (acc[type] || 0) + 1;
+    return acc;
+  }, {});
+
+  const barData = Object.entries(typeCounts).map(([name, value]) => ({ name, value }));
+  const COLORS = ['#2774AE', '#FFD100', '#003B5C', '#808080'];
+
+  const stripFormatting = (text) => {
+    if (!text) return '';
+    return text
+      .replace(/\$[^$]+\$/g, '')
+      .replace(/\$\$[^$]+\$\$/g, '')
+      .replace(/[#*`]/g, '')
+      .replace(/\\/g, '')
+      .substring(0, 200) + (text.length > 200 ? '...' : '');
+  };
 
   if (loading) {
     return (
@@ -60,148 +82,191 @@ const ProblemInventory = () => {
 
   return (
     <Layout>
-      <div>
+      <div className="mb-8">
         <h1 className="text-3xl font-bold text-ucla-blue mb-2">Tournament Progress</h1>
         <p className="text-gray-600 mb-6">Tracking progress toward 200 problems</p>
 
-        {/* Progress Bar */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <div className="flex justify-between mb-2">
-            <span className="font-semibold text-gray-700">Total Problems</span>
-            <span className="font-bold text-ucla-blue text-xl">{totalProblems} / 200</span>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+          <div className="lg:col-span-1 bg-white rounded-lg shadow-md p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Total Problems</h2>
+              <span className="text-ucla-blue font-bold">{totalProblems} / 200</span>
+            </div>
+            <div className="w-full bg-gray-100 rounded-full h-4 overflow-hidden">
+              <div 
+                className="bg-ucla-blue h-full transition-all duration-500" 
+                style={{ width: `${progressPercent}%` }}
+              ></div>
+            </div>
+            
+            <div className="mt-8 grid grid-cols-2 gap-4">
+              {Object.entries(typeCounts).map(([type, count]) => (
+                <div key={type} className="p-3 bg-gray-50 rounded-lg border border-gray-100">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase">{type}</p>
+                  <p className="text-xl font-bold text-ucla-blue">{count}</p>
+                </div>
+              ))}
+            </div>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-6">
-            <div
-              className="bg-ucla-blue h-6 rounded-full transition-all duration-500"
-              style={{ width: `${progressPercent}%` }}
-            />
-          </div>
-        </div>
 
-        {/* Chart */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <h2 className="text-xl font-semibold mb-4">Cumulative Progress Over Time</h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <ReferenceLine y={100} stroke="#FFD100" strokeDasharray="3 3" label="Target" />
-              <Line type="monotone" dataKey="idea" stroke="#8BB8E8" strokeWidth={2} name="Ideas" />
-              <Line type="monotone" dataKey="endorsed" stroke="#FFD100" strokeWidth={2} name="Endorsed" />
-              <Line type="monotone" dataKey="onTest" stroke="#2774AE" strokeWidth={2} name="On Test" />
-              <Line type="monotone" dataKey="published" stroke="#005587" strokeWidth={2} name="Published" />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Filters */}
-        <div className="bg-white rounded-lg shadow-md p-4 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <input
-              type="text"
-              placeholder="Search problems..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ucla-blue focus:border-transparent"
-            />
-            <select
-              value={stageFilter}
-              onChange={(e) => setStageFilter(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ucla-blue focus:border-transparent"
-            >
-              <option value="all">All Stages</option>
-              <option value="Idea">Idea</option>
-              <option value="Review">Review</option>
-              <option value="Endorsed">Endorsed</option>
-              <option value="Live/Ready for Review">Live/Ready for Review</option>
-              <option value="On Test">On Test</option>
-              <option value="Published">Published</option>
-              <option value="Needs Review">Needs Review</option>
-            </select>
-            <select
-              value={topicFilter}
-              onChange={(e) => setTopicFilter(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ucla-blue focus:border-transparent"
-            >
-              <option value="all">All Topics</option>
-              <option value="Algebra">Algebra</option>
-              <option value="Geometry">Geometry</option>
-              <option value="Combinatorics">Combinatorics</option>
-              <option value="Number Theory">Number Theory</option>
-            </select>
+          <div className="lg:col-span-2 bg-white rounded-lg shadow-md p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-[250px]">
+              <div>
+                <h3 className="text-xs font-bold text-gray-400 uppercase mb-4">Cumulative Growth</h3>
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                    <XAxis dataKey="date" hide />
+                    <YAxis stroke="#94a3b8" fontSize={12} />
+                    <Tooltip />
+                    <Line type="monotone" dataKey="count" stroke="#2774AE" strokeWidth={3} dot={false} />
+                    <ReferenceLine y={200} stroke="#cbd5e1" strokeDasharray="3 3" />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+              <div>
+                <h3 className="text-xs font-bold text-gray-400 uppercase mb-4">Type Breakdown</h3>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={barData}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                    <XAxis dataKey="name" hide />
+                    <YAxis stroke="#94a3b8" fontSize={12} />
+                    <Tooltip />
+                    <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                      {barData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Table */}
+        <div className="bg-white rounded-lg shadow-sm p-4 flex flex-wrap gap-4 items-center mb-6">
+          <input
+            type="text"
+            placeholder="Search problems..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="flex-1 min-w-[200px] px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ucla-blue focus:border-transparent outline-none"
+          />
+          <select
+            value={stageFilter}
+            onChange={(e) => setStageFilter(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ucla-blue outline-none"
+          >
+            <option value="all">All Stages</option>
+            <option value="Idea">Idea</option>
+            <option value="Review">Review</option>
+            <option value="Endorsed">Endorsed</option>
+            <option value="Live/Ready for Review">Live/Ready for Review</option>
+            <option value="On Test">On Test</option>
+            <option value="Published">Published</option>
+            <option value="Needs Review">Needs Review</option>
+          </select>
+          <select
+            value={topicFilter}
+            onChange={(e) => setTopicFilter(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ucla-blue outline-none"
+          >
+            <option value="all">All Topics</option>
+            <option value="Algebra">Algebra</option>
+            <option value="Geometry">Geometry</option>
+            <option value="Combinatorics">Combinatorics</option>
+            <option value="Number Theory">Number Theory</option>
+          </select>
+          <div className="text-sm font-medium text-gray-500 ml-auto">
+            Showing {filtered.length} results
+          </div>
+        </div>
+
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-ucla-blue text-white">
-              <tr>
-                <th className="px-4 py-3 text-left">Status</th>
-                <th className="px-4 py-3 text-left">ID</th>
-                <th className="px-4 py-3 text-left">Author</th>
-                <th className="px-4 py-3 text-left">Topics</th>
-                <th className="px-4 py-3 text-left">Stage</th>
-                <th className="px-4 py-3 text-left">Endorsed</th>
-                <th className="px-4 py-3 text-left">Created</th>
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-gray-50 border-b border-gray-100">
+                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Status</th>
+                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Problem Details</th>
+                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Feedback</th>
+                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Created</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-gray-50">
               {filtered.map(problem => (
-                <tr
-                  key={problem.id}
-                  className="border-b hover:bg-gray-50 cursor-pointer"
-                  onClick={() => navigate(`/problem/${problem.id}`)}
-                >
-                  <td className="px-4 py-3">
+                <tr key={problem.id} className="hover:bg-blue-50/30 transition-colors group">
+                  <td className="px-6 py-4 align-top">
                     {problem.stage === 'Published' || problem.endorsements >= 3 ? (
-                      <div className="bg-green-100 text-green-700 p-1 rounded-full w-fit">
-                        <Check size={16} />
+                      <div className="p-2 bg-green-100 text-green-600 rounded-full w-fit shadow-sm">
+                        <Check size={18} />
                       </div>
                     ) : (
-                      <div className="bg-gray-100 text-gray-400 p-1 rounded-full w-fit">
-                        <X size={16} />
+                      <div className="p-2 bg-yellow-100 text-yellow-600 rounded-full w-fit shadow-sm">
+                        <Star size={18} fill={problem.endorsements > 0 ? "currentColor" : "none"} />
                       </div>
                     )}
+                    <p className="mt-2 text-[10px] font-bold text-gray-400 uppercase">{problem.stage}</p>
                   </td>
-                  <td className="px-4 py-3 font-medium text-ucla-blue">{problem.id}</td>
-                  <td className="px-4 py-3">{problem.author?.initials}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex gap-1 flex-wrap">
+                  <td className="px-6 py-4 max-w-md">
+                    <div className="flex items-center gap-3 mb-1">
+                      <button onClick={() => navigate(`/problem/${problem.id}`)} className="text-ucla-blue font-bold hover:underline">
+                        {problem.id}
+                      </button>
+                      <span className="text-xs text-gray-400">by {problem.author?.initials}</span>
+                    </div>
+                    
+                    <p className="text-sm text-gray-600 mb-3 italic">
+                      {stripFormatting(problem.latex)}
+                    </p>
+
+                    <div className="flex flex-wrap gap-2 mb-3">
                       {(problem.topics || []).map(t => (
-                        <span key={t} className="px-2 py-0.5 bg-gray-100 text-gray-700 text-[10px] rounded">
+                        <span key={t} className="px-2 py-0.5 bg-gray-100 text-gray-600 text-[10px] font-bold rounded uppercase tracking-tighter">
                           {t}
                         </span>
                       ))}
+                      <span className="px-2 py-0.5 bg-blue-50 text-ucla-blue text-[10px] font-bold rounded uppercase tracking-tighter">
+                        {problem.examType || 'Numerical Answer'}
+                      </span>
                     </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={`px-2 py-0.5 text-[10px] rounded ${
-                      problem.stage === 'On Test' ? 'bg-blue-100 text-blue-800' :
-                      problem.stage === 'Live/Ready for Review' ? 'bg-green-100 text-green-800' :
-                      problem.stage === 'Published' ? 'bg-green-600 text-white' :
-                      problem.stage === 'Review' ? 'bg-yellow-100 text-yellow-800' :
-                      problem.stage === 'Endorsed' ? 'bg-purple-100 text-purple-800' :
-                      problem.stage === 'Needs Review' ? 'bg-red-100 text-red-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
-                      {problem.stage}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    {problem.endorsements > 0 ? (
-                      <div className="flex items-center gap-1 text-yellow-600 font-bold">
-                        <Star size={14} fill="#FFD100" />
-                        {problem.endorsements}
+
+                    <button 
+                      onClick={() => setShowSolutions(prev => ({ ...prev, [problem.id]: !prev[problem.id] }))}
+                      className="flex items-center gap-1.5 text-xs font-bold text-ucla-blue hover:text-ucla-dark-blue"
+                    >
+                      {showSolutions[problem.id] ? <EyeOff size={14} /> : <Eye size={14} />}
+                      {showSolutions[problem.id] ? 'Hide Solution' : 'Show Solution'}
+                    </button>
+                    
+                    {showSolutions[problem.id] && (
+                      <div className="mt-3 p-4 bg-gray-50 rounded-lg border border-gray-100 text-sm">
+                        <KatexRenderer latex={problem.solution || 'No solution provided.'} />
+                        {problem.answer && (
+                          <div className="mt-2 pt-2 border-t border-gray-200">
+                            <span className="font-bold text-xs uppercase text-gray-400 mr-2">Answer:</span>
+                            <KatexRenderer latex={problem.answer} />
+                          </div>
+                        )}
                       </div>
-                    ) : (
-                      <span className="text-gray-300">-</span>
                     )}
                   </td>
-                  <td className="px-4 py-3">{new Date(problem.createdAt).toLocaleDateString()}</td>
+                  <td className="px-6 py-4 align-top">
+                    <div className="space-y-2">
+                      {problem.feedbacks && problem.feedbacks.length > 0 ? (
+                        problem.feedbacks.slice(0, 3).map(fb => (
+                          <div key={fb.id} className="text-xs flex gap-2">
+                            <div className={`w-1 h-auto rounded-full ${fb.isEndorsement ? 'bg-yellow-400' : 'bg-red-400'}`}></div>
+                            <p className="text-gray-500 truncate max-w-[150px]">{fb.feedback}</p>
+                          </div>
+                        ))
+                      ) : (
+                        <span className="text-xs text-gray-300 italic">No feedback yet</span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 text-xs text-gray-400 align-top">
+                    {new Date(problem.createdAt).toLocaleDateString()}
+                  </td>
                 </tr>
               ))}
             </tbody>
