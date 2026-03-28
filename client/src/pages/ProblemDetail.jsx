@@ -186,7 +186,7 @@ const ProblemDetail = () => {
     }
   };
 
-  const stageOptions = ['Idea', 'Review', 'Live/Ready for Review', 'On Test', 'Published', 'Needs Review', 'Endorsed'];
+  const stageOptions = ['Idea', 'Needs Review', 'Endorsed'];
 
   if (loading) return (
     <Layout>
