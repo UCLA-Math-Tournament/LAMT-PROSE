@@ -68,7 +68,6 @@
 .dark td {
   @apply border-[#004A7A] !important;
 }
-}
 
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
