@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { 
+fiproblem.feedbacksx: ProblemInventory review comments now showing (feedbacks not comments)import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
   BarChart, Bar, Cell
 } from 'recharts';
