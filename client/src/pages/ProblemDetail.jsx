@@ -269,7 +269,9 @@ const ProblemDetail = () => {
                 <button
                   onClick={() => setIsEditing(!isEditing)}
                   className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl font-bold transition-all shadow-md ${
-                    isEditing ? 'bg-gray-200 text-gray-700 hover:bg-gray-300' : 'bg-ucla-blue text-white hover:bg-ucla-dark-blue'
+                    isEditing
+                      ? 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-100 hover:bg-gray-300 dark:hover:bg-gray-600'
+                      : 'bg-ucla-blue text-white hover:bg-ucla-dark-blue'
                   }`}
                 >
                   {isEditing ? <X size={18} /> : <Edit size={18} />}
@@ -287,7 +289,9 @@ const ProblemDetail = () => {
 
         {message && (
           <div className={`mb-8 p-4 rounded-xl border-l-4 font-bold text-sm ${
-            message.includes('Failed') || message.includes('Cannot') ? 'bg-red-50 border-red-500 text-red-700' : 'bg-green-50 border-green-500 text-green-700'
+            message.includes('Failed') || message.includes('Cannot')
+              ? 'bg-red-50 dark:bg-red-900/30 border-red-500 text-red-700 dark:text-red-400'
+              : 'bg-green-50 dark:bg-green-900/30 border-green-500 text-green-700 dark:text-green-400'
           }`}>
             {message}
           </div>
