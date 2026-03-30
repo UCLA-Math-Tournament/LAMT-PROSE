@@ -17,56 +17,91 @@
   }
 }
 
-/* ---- LIGHT MODE: UCLA-branded surfaces ---- */
+@layer components {
+  /* ---- LIGHT MODE: UCLA-branded surfaces ---- */
 
-/* Cards/panels in light mode get a soft blue-white tint */
-.bg-white {
-  @apply bg-[#F5F9FF];
-}
+  /* Cards/panels in light mode get a soft blue-white tint */
+  .bg-white {
+    @apply bg-[#F5F9FF];
+  }
 
-/* ---- DARK MODE: Rich UCLA navy ---- */
+  /* ---- DARK MODE: Rich UCLA navy ---- */
 
-/* 1. White cards -> deep navy blue (not pitch black) */
-.dark .bg-white {
-  @apply bg-[#002B4E] border-[#003B5C] !important;
-}
+  /* 1. White cards -> deep navy blue (not pitch black) */
+  .dark .bg-white {
+    @apply bg-[#002B4E] border-[#003B5C] text-gray-100 !important;
+  }
 
-/* 2. Light gray backgrounds -> slightly lighter navy */
-.dark .bg-gray-50,
-.dark .bg-gray-100,
-.dark .bg-slate-50 {
-  @apply bg-[#003558] border-[#004A7A] !important;
-}
+  /* 2. Light gray backgrounds -> slightly lighter navy */
+  .dark .bg-gray-50,
+  .dark .bg-gray-100,
+  .dark .bg-slate-50 {
+    @apply bg-[#003558] border-[#004A7A] text-gray-100 !important;
+  }
 
-/* 3. Slate backgrounds -> mid-range navy */
-.dark .bg-slate-100,
-.dark .bg-slate-200 {
-  @apply bg-[#003558] !important;
-}
+  /* 3. Slate backgrounds -> mid-range navy */
+  .dark .bg-slate-100,
+  .dark .bg-slate-200 {
+    @apply bg-[#003558] text-gray-100 !important;
+  }
 
-/* 4. Force dark text to become light gray */
-.dark .text-gray-500,
-.dark .text-gray-600,
-.dark .text-gray-700,
-.dark .text-gray-800,
-.dark .text-gray-900,
-.dark .text-black {
-  @apply text-gray-200 !important;
-}
+  /* 4. Force dark text to become light gray */
+  .dark .text-gray-500,
+  .dark .text-gray-600,
+  .dark .text-gray-700,
+  .dark .text-gray-800,
+  .dark .text-gray-900,
+  .dark .text-black {
+    @apply text-gray-200 !important;
+  }
 
-/* 5. Soften bright borders */
-.dark .border-gray-100,
-.dark .border-gray-200,
-.dark .border-gray-300 {
-  @apply border-[#004A7A] !important;
-}
+  /* 5. FIX: Prevent unreadable blue-on-blue for links and accents */
+  .dark .text-blue-500,
+  .dark .text-blue-600,
+  .dark .text-blue-700,
+  .dark .text-blue-800,
+  .dark a {
+    @apply text-blue-300 !important;
+  }
 
-/* 6. Fix table headers */
-.dark th {
-  @apply bg-[#003558] text-gray-300 border-[#004A7A] !important;
-}
-.dark td {
-  @apply border-[#004A7A] !important;
+  /* 6. Soften bright borders */
+  .dark .border-gray-100,
+  .dark .border-gray-200,
+  .dark .border-gray-300 {
+    @apply border-[#004A7A] !important;
+  }
+
+  /* 7. Fix table headers */
+  .dark th {
+    @apply bg-[#003558] text-gray-300 border-[#004A7A] !important;
+  }
+  .dark td {
+    @apply border-[#004A7A] !important;
+  }
+
+  /* 8. FIX: Force Preview Box & Markdown to follow dark mode */
+  .dark .prose, 
+  .dark .preview-container {
+    @apply text-gray-200 !important;
+  }
+  .dark .prose strong, 
+  .dark .prose h1, 
+  .dark .prose h2, 
+  .dark .prose h3 {
+    @apply text-white !important;
+  }
+
+  /* 9. FIX: Force Chart elements to invert in dark mode (Recharts/Chart.js fallbacks) */
+  .dark .recharts-text {
+    @apply fill-gray-300 !important;
+  }
+  .dark .recharts-cartesian-grid-horizontal line,
+  .dark .recharts-cartesian-grid-vertical line {
+    @apply stroke-[#004A7A] !important;
+  }
+  .dark .recharts-tooltip-wrapper .recharts-default-tooltip {
+    @apply bg-[#003558] border-[#004A7A] text-gray-100 !important;
+  }
 }
 
 code {
@@ -89,4 +124,8 @@ code {
 .custom-scrollbar::-webkit-scrollbar-thumb {
   background: #2774AE;
   border-radius: 4px;
+}
+/* Ensure the scrollbar is visible against dark navy */
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #60A5FA; 
 }
