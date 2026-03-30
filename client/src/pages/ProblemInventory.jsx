@@ -167,8 +167,7 @@ const ProblemInventory = () => {
               <option value="Combinatorics">Combinatorics</option>
               <option value="Number Theory">Number Theory</option>
             </select>
-          </div>
-        </div>
+style: fix ProblemInventory chart theming + reduce problem box height        </div>
 
         {/* Content Table */}
         <div className="bg-white dark:bg-[#0f172a] rounded-[2.5rem] border border-slate-100 dark:border-slate-800 overflow-hidden shadow-2xl">
@@ -183,7 +182,7 @@ const ProblemInventory = () => {
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
               {filtered.map(problem => (
                 <tr key={problem.id} onClick={() => navigate(`/problem/${problem.id}`)} className="hover:bg-ucla-blue/[0.03] transition-all cursor-pointer group">
-                  <td className="px-10 py-8">
+                  <td className="px-10 py-4">
                     <div className="flex flex-col gap-2">
                       <span className="text-ucla-blue dark:text-ucla-gold font-black italic tracking-tight text-lg">{problem.id}</span>
                       <p className="text-sm text-slate-600 dark:text-slate-400 line-clamp-1 max-w-xl font-medium">
@@ -195,7 +194,7 @@ const ProblemInventory = () => {
                       </div>
                     </div>
                   </td>
-                  <td className="px-10 py-8">
+                  <td className="px-10 py-4">
                     <div className="flex items-start gap-3 text-slate-400 italic text-xs max-w-sm">
                       <MessageSquare size={16} className="mt-0.5 shrink-0 text-slate-600" />
                       <p className="line-clamp-2 leading-relaxed">
@@ -203,7 +202,7 @@ const ProblemInventory = () => {
                       </p>
                     </div>
                   </td>
-                  <td className="px-10 py-8 text-right">
+                  <td className="px-10 py-4 text-right">
                     <div className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] font-black uppercase ${
                       problem.stage === 'Endorsed' ? 'bg-green-500/10 text-green-500 border border-green-500/20' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
                     }`}>
