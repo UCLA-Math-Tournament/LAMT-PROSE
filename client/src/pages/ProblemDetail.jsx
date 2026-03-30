@@ -23,6 +23,18 @@ const DIFFICULTY_LABELS = {
   10: 'Legendary',
 };
 
+// Parse the resolution note that the backend appends as "\n\n[Resolution] ..."
+const parseResolutionNote = (feedbackText) => {
+  if (!feedbackText) return { body: feedbackText, resolveComment: null };
+  const marker = '\n\n[Resolution] ';
+  const idx = feedbackText.indexOf(marker);
+  if (idx === -1) return { body: feedbackText, resolveComment: null };
+  return {
+    body: feedbackText.slice(0, idx),
+    resolveComment: feedbackText.slice(idx + marker.length),
+  };
+};
+
 const ProblemDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -54,7 +66,7 @@ const ProblemDetail = () => {
   const extractImages = (text, destination) => {
     if (!text) return { cleanText: '', extractedImages: [] };
     const images = [];
-    const regex = /!\[(.*?)\]\((data:image\/[^;]+;base64,[^\)]+)\)/g;
+    const regex = /!\[(.*?)\]\((data:image\/[^;]+;base64,[^)]+)\)/g;
     let cleanText = text.replace(regex, (match, alt, dataUrl) => {
       images.push({ dataUrl, destination });
       return '';
@@ -178,7 +190,8 @@ const ProblemDetail = () => {
       return;
     }
     try {
-      await api.put(`/feedback/${fbId}`, { comment: editedFeedbackComment });
+      // Backend route is PATCH /feedback/:id
+      await api.patch(`/feedback/${fbId}`, { comment: editedFeedbackComment });
       setMessage('Feedback updated.');
       setEditingFeedbackId(null);
       setEditedFeedbackComment('');
@@ -212,7 +225,13 @@ const ProblemDetail = () => {
     </Layout>
   );
 
-  const canEdit = problem._isAuthor || problem._isAdmin;
+  // Fallback: if server flags are missing, compare authorId against local user id
+  const myId = user?.id;
+  const canEdit =
+    problem._isAuthor ||
+    problem._isAdmin ||
+    (myId && problem.authorId && String(myId) === String(problem.authorId));
+
   const currentDifficulty = isEditing ? editedDifficulty : (parseInt(problem.quality) || 5);
 
   return (
@@ -463,11 +482,13 @@ const ProblemDetail = () => {
               ) : (
                 <div className="space-y-4">
                   {feedbacks.map((fb) => {
-                    // Match on id, userId, or email fallback — covers various API shapes
-                    const myId = user?.id || user?.userId;
-                    const fbUserId = fb.user?.id || fb.user?.userId || fb.userId;
-                    const isMyFeedback = myId && fbUserId && String(myId) === String(fbUserId);
+                    const myFbId = user?.id;
+                    const fbUserId = fb.user?.id || fb.userId;
+                    const isMyFeedback = myFbId && fbUserId && String(myFbId) === String(fbUserId);
                     const isEditingThis = editingFeedbackId === fb.id;
+
+                    // Parse resolution note embedded in the feedback text by backend
+                    const { body: fbBody, resolveComment: fbResolveNote } = parseResolutionNote(fb.feedback);
 
                     return (
                       <div key={fb.id} className={`bg-white border rounded-2xl p-6 shadow-sm transition-all ${
@@ -507,7 +528,7 @@ const ProblemDetail = () => {
                                     setEditingFeedbackId(null);
                                   } else {
                                     setEditingFeedbackId(fb.id);
-                                    setEditedFeedbackComment(fb.feedback);
+                                    setEditedFeedbackComment(fbBody);
                                   }
                                 }}
                                 className="text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-ucla-blue transition-colors"
@@ -515,7 +536,7 @@ const ProblemDetail = () => {
                                 {isEditingThis ? 'Cancel' : 'Edit'}
                               </button>
                             )}
-                            {!fb.resolved && !fb.isEndorsement && (problem._isAuthor || problem._isAdmin) && (
+                            {!fb.resolved && !fb.isEndorsement && canEdit && (
                               <button
                                 onClick={() => setResolvingId(fb.id === resolvingId ? null : fb.id)}
                                 className="text-[10px] font-black uppercase tracking-widest text-ucla-blue hover:underline"
@@ -543,14 +564,14 @@ const ProblemDetail = () => {
                             </button>
                           </div>
                         ) : (
-                          <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">{fb.feedback}</p>
+                          <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">{fbBody}</p>
                         )}
 
-                        {/* Resolution note (shown when resolved) */}
-                        {fb.resolved && fb.resolveComment && (
+                        {/* Resolution note parsed from feedback text */}
+                        {fb.resolved && fbResolveNote && (
                           <div className="mt-4 p-4 bg-green-50 rounded-xl border border-green-100">
                             <p className="text-[10px] font-black text-green-600 uppercase tracking-widest mb-1">Resolution Note</p>
-                            <p className="text-sm text-green-800 leading-relaxed">{fb.resolveComment}</p>
+                            <p className="text-sm text-green-800 leading-relaxed">{fbResolveNote}</p>
                           </div>
                         )}
 
