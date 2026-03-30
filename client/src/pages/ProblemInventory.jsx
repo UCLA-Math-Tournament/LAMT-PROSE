@@ -6,11 +6,24 @@ import {
 import { Check, Star, Search, Filter, BookOpen, MessageSquare, Info } from 'lucide-react';
 import api from '../utils/api';
 import Layout from '../components/Layout';
-import { useTheme } from '../components/Layout';
 
 const ProblemInventory = () => {
   const navigate = useNavigate();
-  const { dark } = useTheme();
+
+  // Read dark mode directly from the DOM class — always in sync
+  const [dark, setDark] = useState(() =>
+    document.documentElement.classList.contains('dark')
+  );
+
+  // Stay in sync when the user toggles via Layout's sidebar
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setDark(document.documentElement.classList.contains('dark'));
+    });
+    observer.observe(document.documentElement, { attributeFilter: ['class'] });
+    return () => observer.disconnect();
+  }, []);
+
   const [problems, setProblems] = useState([]);
   const [search, setSearch] = useState('');
   const [stageFilter, setStageFilter] = useState('all');
@@ -86,12 +99,12 @@ const ProblemInventory = () => {
     return { filtered: res, stats: counts, chartData: cumulativeGrowth };
   }, [problems, search, stageFilter, topicFilter, difficultyFilter, sortBy]);
 
-  // Chart colors adapt to dark/light mode
-  const chartBg = dark ? '#0f172a' : '#ffffff';
-  const chartBorder = dark ? '#1e293b' : '#e2e8f0';
-  const chartGrid = dark ? '#334155' : '#e2e8f0';
-  const chartAxis = dark ? '#64748b' : '#94a3b8';
-  const chartTooltipBg = dark ? '#0f172a' : '#ffffff';
+  // Chart colors — all driven by live `dark` state
+  const chartBg          = dark ? '#0f172a' : '#ffffff';
+  const chartBorder      = dark ? '#1e293b' : '#e2e8f0';
+  const chartGrid        = dark ? '#334155' : '#e2e8f0';
+  const chartAxis        = dark ? '#64748b' : '#94a3b8';
+  const chartTooltipBg   = dark ? '#0f172a' : '#ffffff';
   const chartTooltipBorder = dark ? '#1e293b' : '#e2e8f0';
 
   if (loading) {
@@ -129,27 +142,35 @@ const ProblemInventory = () => {
             </div>
           </div>
 
-          {/* Chart card — dark/light aware */}
+          {/* Chart card — background driven by JS dark state */}
           <div
             className="lg:col-span-2 rounded-[2.5rem] p-8 shadow-md border"
             style={{ backgroundColor: chartBg, borderColor: chartBorder }}
           >
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
-                <BookOpen size={18} className="text-ucla-blue dark:text-slate-400" />
-                <h3 className="text-[11px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                <BookOpen size={18} style={{ color: dark ? '#94a3b8' : UCLA_BLUE }} />
+                <h3 style={{ color: dark ? '#94a3b8' : '#64748b' }} className="text-[11px] font-black uppercase tracking-widest">
                   Inventory Growth
                 </h3>
               </div>
               <div className="group relative cursor-pointer">
-                <Info size={16} className="text-slate-400 group-hover:text-ucla-gold transition-colors" />
-                <div className="absolute right-0 top-6 w-48 p-3 bg-white dark:bg-slate-900 rounded-xl text-[10px] text-slate-600 dark:text-slate-300 hidden group-hover:block z-50 border border-slate-200 dark:border-slate-700 shadow-xl">
+                <Info size={16} style={{ color: dark ? '#475569' : '#94a3b8' }} />
+                <div
+                  className="absolute right-0 top-6 w-48 p-3 rounded-xl text-[10px] hidden group-hover:block z-50 shadow-xl border"
+                  style={{
+                    backgroundColor: dark ? '#1e293b' : '#ffffff',
+                    borderColor: dark ? '#334155' : '#e2e8f0',
+                    color: dark ? '#cbd5e1' : '#475569',
+                  }}
+                >
                   Cumulative totals across all workflow stages.
                 </div>
               </div>
             </div>
             <div className="h-44">
-              <ResponsiveContainer width="100%" height="100%">
+              {/* key={dark} forces Recharts to remount when theme changes */}
+              <ResponsiveContainer width="100%" height="100%" key={String(dark)}>
                 <LineChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartGrid} opacity={0.5} />
                   <XAxis
@@ -249,7 +270,7 @@ const ProblemInventory = () => {
                         {problem.id}
                       </span>
                       <p className="text-sm text-slate-600 dark:text-slate-400 line-clamp-1 max-w-xl font-medium">
-                        {problem.latex?.replace(/[$#\\]/g, '') || 'Click to view problem content...'}
+                        {problem.latex?.replace(/[$#\\\\]/g, '') || 'Click to view problem content...'}
                       </p>
                       <div className="flex gap-2 mt-2">
                         <span className="text-[9px] font-black px-2.5 py-1 bg-ucla-gold/10 text-amber-600 dark:text-ucla-gold rounded-lg border border-ucla-gold/20 uppercase">
