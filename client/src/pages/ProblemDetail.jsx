@@ -190,7 +190,6 @@ const ProblemDetail = () => {
       return;
     }
     try {
-      // Backend route is PATCH /feedback/:id
       await api.patch(`/feedback/${fbId}`, { comment: editedFeedbackComment });
       setMessage('Feedback updated.');
       setEditingFeedbackId(null);
@@ -244,14 +243,14 @@ const ProblemDetail = () => {
             <div className="flex items-center gap-3 flex-wrap">
               <h1 className="text-4xl font-black text-ucla-blue tracking-tight">Problem {problem.id}</h1>
               <span className={`px-4 py-1 text-xs uppercase tracking-widest rounded-full font-black shadow-sm flex items-center gap-1.5 ${
-                problem._displayStatus === 'needs_review' ? 'bg-red-500 text-white' :
-                problem._displayStatus === 'endorsed' ? 'bg-[#FFD100] text-ucla-blue' :
+                problem._displayStatus === 'needs_review' || problem._displayStatus === 'Needs Review' ? 'bg-red-500 text-white' :
+                problem._displayStatus === 'endorsed' || problem._displayStatus === 'Endorsed' ? 'bg-[#FFD100] text-ucla-blue' :
                 'bg-ucla-blue text-white'
               }`}>
-                {problem._displayStatus === 'needs_review' && <AlertCircle size={14} />}
-                {problem._displayStatus === 'endorsed' && <Star size={14} className="fill-current" />}
-                {problem._displayStatus === 'needs_review' ? 'Needs Review' :
-                 problem._displayStatus === 'endorsed' ? 'Endorsed' : problem.stage}
+                {(problem._displayStatus === 'needs_review' || problem._displayStatus === 'Needs Review') && <AlertCircle size={14} />}
+                {(problem._displayStatus === 'endorsed' || problem._displayStatus === 'Endorsed') && <Star size={14} className="fill-current" />}
+                {problem._displayStatus === 'needs_review' || problem._displayStatus === 'Needs Review' ? 'Needs Review' :
+                 problem._displayStatus === 'endorsed' || problem._displayStatus === 'Endorsed' ? 'Endorsed' : problem.stage}
               </span>
             </div>
             <div className="flex items-center gap-2 mt-3 text-gray-500 font-medium">
@@ -398,6 +397,18 @@ const ProblemDetail = () => {
                   />
                 </div>
 
+                {/* Notes */}
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2 ml-1">Author Notes</label>
+                  <textarea
+                    value={editedNotes}
+                    onChange={(e) => setEditedNotes(e.target.value)}
+                    rows={3}
+                    placeholder="Private notes for reviewers (sources, related problems, etc.)..."
+                    className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-xl font-mono text-sm focus:ring-2 focus:ring-ucla-blue outline-none"
+                  />
+                </div>
+
                 {/* Answer + Stage */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
@@ -487,7 +498,6 @@ const ProblemDetail = () => {
                     const isMyFeedback = myFbId && fbUserId && String(myFbId) === String(fbUserId);
                     const isEditingThis = editingFeedbackId === fb.id;
 
-                    // Parse resolution note embedded in the feedback text by backend
                     const { body: fbBody, resolveComment: fbResolveNote } = parseResolutionNote(fb.feedback);
 
                     return (
@@ -496,7 +506,6 @@ const ProblemDetail = () => {
                         fb.resolved ? 'border-green-100' :
                         'border-red-100'
                       }`}>
-                        {/* Card Header */}
                         <div className="flex justify-between items-start mb-4">
                           <div className="flex items-center gap-3">
                             <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs ${
@@ -519,7 +528,6 @@ const ProblemDetail = () => {
                             </div>
                           </div>
 
-                          {/* Action Buttons */}
                           <div className="flex items-center gap-3">
                             {isMyFeedback && !fb.resolved && !fb.isEndorsement && (
                               <button
@@ -547,7 +555,6 @@ const ProblemDetail = () => {
                           </div>
                         </div>
 
-                        {/* Feedback Body */}
                         {isEditingThis ? (
                           <div className="space-y-3">
                             <textarea
@@ -567,7 +574,6 @@ const ProblemDetail = () => {
                           <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">{fbBody}</p>
                         )}
 
-                        {/* Resolution note parsed from feedback text */}
                         {fb.resolved && fbResolveNote && (
                           <div className="mt-4 p-4 bg-green-50 rounded-xl border border-green-100">
                             <p className="text-[10px] font-black text-green-600 uppercase tracking-widest mb-1">Resolution Note</p>
@@ -575,7 +581,6 @@ const ProblemDetail = () => {
                           </div>
                         )}
 
-                        {/* Resolve input box */}
                         {resolvingId === fb.id && (
                           <div className="mt-5 p-5 bg-slate-50 rounded-xl border border-slate-200">
                             <textarea
@@ -635,6 +640,14 @@ const ProblemDetail = () => {
                   }
                 </div>
               </div>
+
+              {/* Author Notes Card — visible in view mode to all users when notes exist */}
+              {!isEditing && problem.notes && (
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Author Notes</p>
+                  <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{problem.notes}</p>
+                </div>
+              )}
 
               {/* Live Render (edit mode) */}
               {isEditing && (

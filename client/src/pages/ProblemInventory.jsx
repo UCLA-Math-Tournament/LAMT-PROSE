@@ -10,12 +10,10 @@ import Layout from '../components/Layout';
 const ProblemInventory = () => {
   const navigate = useNavigate();
 
-  // Read dark mode directly from the DOM class — always in sync
   const [dark, setDark] = useState(() =>
     document.documentElement.classList.contains('dark')
   );
 
-  // Stay in sync when the user toggles via Layout's sidebar
   useEffect(() => {
     const observer = new MutationObserver(() => {
       setDark(document.documentElement.classList.contains('dark'));
@@ -99,7 +97,6 @@ const ProblemInventory = () => {
     return { filtered: res, stats: counts, chartData: cumulativeGrowth };
   }, [problems, search, stageFilter, topicFilter, difficultyFilter, sortBy]);
 
-  // Chart colors — all driven by live `dark` state
   const chartBg          = dark ? '#0f172a' : '#ffffff';
   const chartBorder      = dark ? '#1e293b' : '#e2e8f0';
   const chartGrid        = dark ? '#334155' : '#e2e8f0';
@@ -123,7 +120,6 @@ const ProblemInventory = () => {
 
         {/* Header Stats */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          {/* Problem count card */}
           <div className="bg-ucla-blue rounded-[2.5rem] p-10 text-white shadow-xl relative overflow-hidden">
             <p className="text-[11px] font-black uppercase tracking-[0.2em] opacity-70 mb-2">Problem Count</p>
             <h2 className="text-7xl font-black italic mb-8">
@@ -142,7 +138,6 @@ const ProblemInventory = () => {
             </div>
           </div>
 
-          {/* Chart card — background driven by JS dark state */}
           <div
             className="lg:col-span-2 rounded-[2.5rem] p-8 shadow-md border"
             style={{ backgroundColor: chartBg, borderColor: chartBorder }}
@@ -169,7 +164,6 @@ const ProblemInventory = () => {
               </div>
             </div>
             <div className="h-44">
-              {/* key={dark} forces Recharts to remount when theme changes */}
               <ResponsiveContainer width="100%" height="100%" key={String(dark)}>
                 <LineChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartGrid} opacity={0.5} />
@@ -290,8 +284,11 @@ const ProblemInventory = () => {
                   <td className="px-10 py-3">
                     <div className="flex items-start gap-3 text-slate-400 italic text-xs max-w-sm">
                       <MessageSquare size={16} className="mt-0.5 shrink-0 text-slate-400" />
+                      {/* FIX: was problem.comments?.[0]?.content — field is feedbacks[].feedback */}
                       <p className="line-clamp-2 leading-relaxed">
-                        {problem.comments?.[0]?.content || 'No review comments submitted yet.'}
+                        {problem.feedbacks?.length > 0
+                          ? `${problem.feedbacks[0].isEndorsement ? '⭐ ' : ''}${problem.feedbacks[0].feedback || '(no comment)'}`
+                          : 'No reviews submitted yet.'}
                       </p>
                     </div>
                   </td>

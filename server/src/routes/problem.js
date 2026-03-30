@@ -37,7 +37,6 @@ async function assignProblemId(userInitials) {
         .map((p) => parseInt(p.id.slice(userInitials.length)))
         .filter((n) => !isNaN(n))
     );
-    // Also check deleted IDs table if it exists, to reuse gaps
     let num = 1;
     while (usedNums.has(num)) num++;
     const newId = `${userInitials}${String(num).padStart(4, '0')}`;
@@ -106,13 +105,14 @@ router.get('/', authenticate, async (req, res) => {
       where,
       include: {
         author: { select: { firstName: true, lastName: true, initials: true } },
-        feedbacks: true,
+        feedbacks: { orderBy: { createdAt: 'desc' } },
       },
       orderBy: { createdAt: 'desc' },
     });
     const result = problems.map((p) => {
       const pData = { ...p };
-      const isAuthor = p.authorId === req.userId;
+      // FIX: use String() coercion to avoid int vs string mismatch from JWT
+      const isAuthor = String(p.authorId) === String(req.userId);
       if (!isAdmin) delete pData.answer;
       if (!isAdmin && !isAuthor) {
         delete pData.solution;
@@ -167,7 +167,8 @@ router.get('/:id', authenticate, async (req, res) => {
       },
     });
     if (!problem) return res.status(404).json({ error: 'Problem not found' });
-    const isAuthor = problem.authorId === req.userId;
+    // FIX: String() coercion prevents int vs string JWT mismatch
+    const isAuthor = String(problem.authorId) === String(req.userId);
     const isAdmin = currentUser?.isAdmin || ADMIN_EMAILS.includes(currentUser?.email);
     const result = { ...problem };
     if (!isAdmin && !isAuthor) delete result.answer;
@@ -191,12 +192,12 @@ router.put('/:id', authenticate, async (req, res) => {
     });
     const existing = await prisma.problem.findUnique({ where: { id: req.params.id } });
     if (!existing) return res.status(404).json({ error: 'Problem not found' });
-    const isAuthor = existing.authorId === req.userId;
+    // FIX: String() coercion
+    const isAuthor = String(existing.authorId) === String(req.userId);
     const isAdmin = currentUser?.isAdmin || ADMIN_EMAILS.includes(currentUser?.email);
     if (!isAuthor && !isAdmin) {
       return res.status(403).json({ error: 'Not authorized' });
     }
-    // Validate stage if provided
     if (stage !== undefined && !VALID_STAGES.includes(stage)) {
       return res.status(400).json({ error: `Invalid stage. Must be one of: ${VALID_STAGES.join(', ')}` });
     }
@@ -236,10 +237,10 @@ router.delete('/:id', authenticate, async (req, res) => {
     const existing = await prisma.problem.findUnique({ where: { id: req.params.id } });
     if (!existing) return res.status(404).json({ error: 'Problem not found' });
     const isAdmin = currentUser?.isAdmin || ADMIN_EMAILS.includes(currentUser?.email);
-    if (existing.authorId !== req.userId && !isAdmin) {
+    // FIX: String() coercion
+    if (String(existing.authorId) !== String(req.userId) && !isAdmin) {
       return res.status(403).json({ error: 'Not authorized' });
     }
-    // Delete all related feedbacks first (cascade)
     await prisma.feedback.deleteMany({ where: { problemId: req.params.id } });
     await prisma.problem.delete({ where: { id: req.params.id } });
     res.json({ message: 'Problem deleted' });
