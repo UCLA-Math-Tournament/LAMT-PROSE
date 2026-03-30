@@ -50,28 +50,22 @@ router.get('/next', authenticate, async (req, res) => {
 });
 
 // GET /feedback/reviewable - all problems eligible for review
-// FIX: exclude problems the current user has already reviewed (any feedback entry)
 router.get('/reviewable', authenticate, async (req, res) => {
   try {
     const { topic, stage, author, difficulty } = req.query;
-
-    // Find all problem IDs the current user has already submitted any feedback for
     const alreadyReviewed = await prisma.feedback.findMany({
       where: { userId: req.userId },
       select: { problemId: true },
     });
     const reviewedIds = alreadyReviewed.map((f) => f.problemId);
-
     const where = {
       authorId: { not: req.userId },
-      // Exclude problems already reviewed by this user
       ...(reviewedIds.length > 0 ? { id: { notIn: reviewedIds } } : {}),
     };
     if (topic) where.topics = { has: topic };
     if (stage) where.stage = stage;
     if (author) where.authorId = author;
     if (difficulty) where.quality = difficulty;
-
     const problems = await prisma.problem.findMany({
       where,
       include: {
@@ -144,11 +138,8 @@ router.post('/', authenticate, async (req, res) => {
         resolved: false,
       },
     });
-    const updateData = {};
     if (isEndorsement) {
-      updateData.endorsements = { increment: 1 };
-      // Auto-advance stage to Endorsed on first endorsement
-      const updatedProblem = await prisma.problem.update({
+      await prisma.problem.update({
         where: { id: problemId },
         data: { endorsements: { increment: 1 }, stage: 'Endorsed' },
       });
@@ -180,10 +171,12 @@ router.get('/problem/:problemId', authenticate, async (req, res) => {
   }
 });
 
-// PATCH /feedback/:id - edit feedback (creator or admin)
+// PATCH /feedback/:id - edit feedback (creator or admin only; NOT problem author)
+// Supports: comment text edit, isEndorsement toggle (endorsement <-> review)
+// Cannot edit resolved feedback.
 router.patch('/:id', authenticate, async (req, res) => {
   try {
-    const { comment, resolved } = req.body;
+    const { comment, isEndorsement } = req.body;
     const currentUser = await prisma.user.findUnique({
       where: { id: req.userId },
       select: { isAdmin: true, email: true },
@@ -195,13 +188,50 @@ router.patch('/:id', authenticate, async (req, res) => {
     });
     if (!fb) return res.status(404).json({ error: 'Feedback not found' });
     const isCreator = String(fb.userId) === String(req.userId);
-    const isProblemAuthor = String(fb.problem.authorId) === String(req.userId);
-    if (!isCreator && !isProblemAuthor && !isAdmin) {
+    // Only the feedback creator or an admin can edit — NOT the problem author
+    if (!isCreator && !isAdmin) {
       return res.status(403).json({ error: 'Not authorized to edit this feedback' });
     }
+    if (fb.resolved) {
+      return res.status(400).json({ error: 'Cannot edit resolved feedback' });
+    }
+
     const updateData = {};
     if (comment !== undefined) updateData.feedback = comment;
-    if (resolved !== undefined) updateData.resolved = resolved;
+
+    // Handle endorsement toggle
+    if (isEndorsement !== undefined && isEndorsement !== fb.isEndorsement) {
+      updateData.isEndorsement = isEndorsement;
+      updateData.needsReview = !isEndorsement;
+      const problemId = fb.problemId;
+      const problem = fb.problem;
+
+      if (isEndorsement) {
+        // switching from review -> endorsement
+        // increment endorsements, decrement solveCount
+        const newEndorsements = (problem.endorsements || 0) + 1;
+        const newSolveCount = Math.max(0, (problem.solveCount || 1) - 1);
+        // Check remaining unresolved non-endorsement feedbacks after this change
+        const remainingReviews = await prisma.feedback.count({
+          where: { problemId, resolved: false, isEndorsement: false, id: { not: fb.id } },
+        });
+        const newStage = remainingReviews > 0 ? 'Needs Review' : 'Endorsed';
+        await prisma.problem.update({
+          where: { id: problemId },
+          data: { endorsements: newEndorsements, solveCount: newSolveCount, stage: newStage },
+        });
+      } else {
+        // switching from endorsement -> review
+        const newEndorsements = Math.max(0, (problem.endorsements || 1) - 1);
+        const newSolveCount = (problem.solveCount || 0) + 1;
+        // Now there's a new unresolved review, so stage = Needs Review
+        await prisma.problem.update({
+          where: { id: problemId },
+          data: { endorsements: newEndorsements, solveCount: newSolveCount, stage: 'Needs Review' },
+        });
+      }
+    }
+
     const updated = await prisma.feedback.update({
       where: { id: req.params.id },
       data: updateData,
@@ -237,12 +267,10 @@ router.put('/:id/resolve', authenticate, async (req, res) => {
       where: { id: req.params.id },
       data: { resolved: true, feedback: fb.feedback + '\n\n[Resolution] ' + comment },
     });
-    // Check if all non-endorsement feedbacks are resolved; if so, revert stage
     const remaining = await prisma.feedback.count({
       where: { problemId: fb.problemId, resolved: false, isEndorsement: false },
     });
     if (remaining === 0) {
-      // Determine correct stage: Endorsed if has endorsements, else Idea
       const problem = await prisma.problem.findUnique({ where: { id: fb.problemId } });
       const newStage = (problem?.endorsements || 0) > 0 ? 'Endorsed' : 'Idea';
       await prisma.problem.update({ where: { id: fb.problemId }, data: { stage: newStage } });
@@ -253,7 +281,9 @@ router.put('/:id/resolve', authenticate, async (req, res) => {
   }
 });
 
-// DELETE /feedback/:id - remove feedback, return problem to review pool
+// DELETE /feedback/:id
+// Deletes the feedback row — the problem automatically re-enters the reviewer's
+// available pool since pool eligibility is computed as "no existing feedback row".
 router.delete('/:id', authenticate, async (req, res) => {
   try {
     const currentUser = await prisma.user.findUnique({
@@ -272,14 +302,17 @@ router.delete('/:id', authenticate, async (req, res) => {
     const problemId = fb.problemId;
     const problem = fb.problem;
     await prisma.feedback.delete({ where: { id: req.params.id } });
+    // Recompute problem counters and stage after deletion
     const updateData = {};
     if (fb.isEndorsement) {
-      updateData.endorsements = Math.max(0, problem.endorsements - 1);
-      const newEndorsementCount = problem.endorsements - 1;
-      updateData.stage = newEndorsementCount <= 0 ? 'Idea' : 'Endorsed';
+      const newEndorsements = Math.max(0, problem.endorsements - 1);
+      updateData.endorsements = newEndorsements;
+      const remainingReviews = await prisma.feedback.count({
+        where: { problemId, resolved: false, isEndorsement: false },
+      });
+      updateData.stage = remainingReviews > 0 ? 'Needs Review' : (newEndorsements > 0 ? 'Endorsed' : 'Idea');
     } else {
       updateData.solveCount = Math.max(0, (problem.solveCount || 1) - 1);
-      // Check if any unresolved feedback remains
       const remainingUnresolved = await prisma.feedback.count({
         where: { problemId, resolved: false, isEndorsement: false },
       });

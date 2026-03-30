@@ -59,6 +59,7 @@ const ProblemDetail = () => {
   const [resolveComment, setResolveComment] = useState('');
   const [editingFeedbackId, setEditingFeedbackId] = useState(null);
   const [editedFeedbackComment, setEditedFeedbackComment] = useState('');
+  const [editedFeedbackIsEndorsement, setEditedFeedbackIsEndorsement] = useState(false);
 
   const extractImages = (text, destination) => {
     if (!text) return { cleanText: '', extractedImages: [] };
@@ -182,18 +183,20 @@ const ProblemDetail = () => {
   };
 
   const handleEditFeedback = async (fbId) => {
-    if (!editedFeedbackComment.trim()) {
-      setMessage('Feedback cannot be empty.');
-      return;
-    }
     try {
-      await api.patch(`/feedback/${fbId}`, { comment: editedFeedbackComment });
+      const payload = { comment: editedFeedbackComment };
+      const originalFb = feedbacks.find(f => f.id === fbId);
+      // Only send isEndorsement if it changed
+      if (originalFb && editedFeedbackIsEndorsement !== originalFb.isEndorsement) {
+        payload.isEndorsement = editedFeedbackIsEndorsement;
+      }
+      await api.patch(`/feedback/${fbId}`, payload);
       setMessage('Feedback updated.');
       setEditingFeedbackId(null);
       setEditedFeedbackComment('');
       fetchProblem();
     } catch (error) {
-      setMessage('Failed to update feedback');
+      setMessage(error?.response?.data?.error || 'Failed to update feedback');
     }
   };
 
@@ -221,15 +224,14 @@ const ProblemDetail = () => {
     </Layout>
   );
 
-  // _userId is the server-echoed req.userId — most reliable for authorId comparison
-  // fallback: compare problem.authorId against both user.id and problem._userId
   const myId = user?.id;
-  const serverUserId = problem._userId; // server echoes req.userId back
+  const serverUserId = problem._userId;
   const canEdit =
     problem._isAuthor ||
     problem._isAdmin ||
     (myId && problem.authorId && String(myId) === String(problem.authorId)) ||
     (serverUserId && problem.authorId && String(serverUserId) === String(problem.authorId));
+  const isAdmin = problem._isAdmin;
 
   const currentDifficulty = isEditing ? editedDifficulty : (parseInt(problem.quality) || 5);
 
@@ -285,7 +287,7 @@ const ProblemDetail = () => {
 
         {message && (
           <div className={`mb-8 p-4 rounded-xl border-l-4 font-bold text-sm ${
-            message.includes('Failed') ? 'bg-red-50 border-red-500 text-red-700' : 'bg-green-50 border-green-500 text-green-700'
+            message.includes('Failed') || message.includes('Cannot') ? 'bg-red-50 border-red-500 text-red-700' : 'bg-green-50 border-green-500 text-green-700'
           }`}>
             {message}
           </div>
@@ -351,8 +353,8 @@ const ProblemDetail = () => {
               </div>
             </div>
 
-            {/* Solution Section (view mode only) */}
-            {!isEditing && (problem.solution || problem._isAdmin || problem._isAuthor || canEdit) && (
+            {/* Solution Section */}
+            {!isEditing && (problem.solution || canEdit) && (
               <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                 <button
                   onClick={() => setShowSolution(!showSolution)}
@@ -488,9 +490,13 @@ const ProblemDetail = () => {
               ) : (
                 <div className="space-y-4">
                   {feedbacks.map((fb) => {
-                    const myFbId = user?.id;
                     const fbUserId = fb.user?.id || fb.userId;
-                    const isMyFeedback = myFbId && fbUserId && String(myFbId) === String(fbUserId);
+                    // isMyFeedback: match against client user.id OR server-echoed _userId
+                    const isMyFeedback =
+                      (myId && fbUserId && String(myId) === String(fbUserId)) ||
+                      (serverUserId && fbUserId && String(serverUserId) === String(fbUserId));
+                    // Can edit if: my feedback OR admin. NOT resolved.
+                    const canEditThisFeedback = !fb.resolved && (isMyFeedback || isAdmin);
                     const isEditingThis = editingFeedbackId === fb.id;
 
                     const { body: fbBody, resolveComment: fbResolveNote } = parseResolutionNote(fb.feedback);
@@ -524,7 +530,7 @@ const ProblemDetail = () => {
                           </div>
 
                           <div className="flex items-center gap-3">
-                            {isMyFeedback && !fb.resolved && !fb.isEndorsement && (
+                            {canEditThisFeedback && (
                               <button
                                 onClick={() => {
                                   if (isEditingThis) {
@@ -532,6 +538,7 @@ const ProblemDetail = () => {
                                   } else {
                                     setEditingFeedbackId(fb.id);
                                     setEditedFeedbackComment(fbBody);
+                                    setEditedFeedbackIsEndorsement(fb.isEndorsement);
                                   }
                                 }}
                                 className="text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-ucla-blue transition-colors"
@@ -550,7 +557,7 @@ const ProblemDetail = () => {
                           </div>
                         </div>
 
-                        {/* Testsolver answer — visible to author/admin only */}
+                        {/* Testsolver answer — visible to canEdit users only */}
                         {canEdit && fb.answer && (
                           <div className="mb-3 flex items-center gap-3">
                             <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Their Answer</span>
@@ -568,6 +575,34 @@ const ProblemDetail = () => {
                               className="w-full p-3 border border-slate-200 bg-slate-50 rounded-xl text-sm focus:ring-2 focus:ring-ucla-blue outline-none"
                               rows={3}
                             />
+                            {/* Endorsement toggle — only the feedback creator can flip this */}
+                            {isMyFeedback && (
+                              <div className="flex items-center gap-3">
+                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Type</span>
+                                <button
+                                  type="button"
+                                  onClick={() => setEditedFeedbackIsEndorsement(false)}
+                                  className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase border transition-all ${
+                                    !editedFeedbackIsEndorsement
+                                      ? 'bg-red-500 border-red-500 text-white'
+                                      : 'bg-white border-slate-200 text-slate-400 hover:border-red-300'
+                                  }`}
+                                >
+                                  Review
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setEditedFeedbackIsEndorsement(true)}
+                                  className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase border transition-all ${
+                                    editedFeedbackIsEndorsement
+                                      ? 'bg-yellow-400 border-yellow-400 text-white'
+                                      : 'bg-white border-slate-200 text-slate-400 hover:border-yellow-300'
+                                  }`}
+                                >
+                                  Endorsement
+                                </button>
+                              </div>
+                            )}
                             <button
                               onClick={() => handleEditFeedback(fb.id)}
                               className="bg-ucla-blue text-white px-5 py-2 rounded-lg text-xs font-black uppercase tracking-widest hover:bg-ucla-dark-blue transition-colors"
@@ -646,7 +681,7 @@ const ProblemDetail = () => {
                 </div>
               </div>
 
-              {/* Author Notes Card — KaTeX rendered */}
+              {/* Author Notes Card */}
               {!isEditing && problem.notes && (
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                   <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Author Notes</p>
