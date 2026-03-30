@@ -100,9 +100,14 @@ const Dashboard = () => {
   };
 
   // --- Derived Data ---
-  const filteredProblems = filter === 'all'
-    ? problems
-    : problems.filter((p) => p._displayStatus === filter || p.stage === filter);
+  // FIX: _displayStatus values from server are title-cased ('Endorsed', 'Needs Review').
+  // Filter button values must match exactly. Map button value -> predicate.
+  const filteredProblems = problems.filter((p) => {
+    if (filter === 'all') return true;
+    if (filter === 'needs_review') return p._displayStatus === 'needs_review' || p._displayStatus === 'Needs Review';
+    if (filter === 'Endorsed') return p._displayStatus === 'Endorsed' || p._displayStatus === 'endorsed';
+    return p._displayStatus === filter || p.stage === filter;
+  });
 
   const topics = ['Algebra', 'Geometry', 'Combinatorics', 'Number Theory'];
 
@@ -186,17 +191,24 @@ const Dashboard = () => {
               <div className="flex-1">
                 <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md overflow-hidden border border-gray-100 dark:border-slate-700/50 transition-colors">
                   <div className="p-4 border-b border-gray-100 dark:border-slate-700 flex gap-2 flex-wrap">
-                    {['all', 'needs_review', 'Idea', 'Published', 'endorsed'].map((s) => (
+                    {/* FIX: use 'Endorsed' (title-case) to match _displayStatus from server */}
+                    {[
+                      { value: 'all',          label: 'All' },
+                      { value: 'needs_review', label: 'Needs Review' },
+                      { value: 'Idea',         label: 'Idea' },
+                      { value: 'Published',    label: 'Published' },
+                      { value: 'Endorsed',     label: 'Endorsed' },
+                    ].map(({ value, label }) => (
                       <button
-                        key={s}
-                        onClick={() => setFilter(s)}
+                        key={value}
+                        onClick={() => setFilter(value)}
                         className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                          filter === s
+                          filter === value
                             ? 'bg-ucla-blue text-white shadow-sm dark:bg-[#FFD100] dark:text-slate-900'
                             : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-slate-700 dark:text-gray-300 dark:hover:bg-slate-600'
                         }`}
                       >
-                        {s === 'all' ? 'All' : s === 'needs_review' ? 'Needs Review' : s}
+                        {label}
                       </button>
                     ))}
                   </div>
@@ -230,13 +242,17 @@ const Dashboard = () => {
                             </td>
                             <td className="px-4 py-3">
                               <span className={`px-2 py-1 text-xs rounded font-medium ${
-                                problem._displayStatus === 'needs_review' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' :
-                                problem._displayStatus === 'endorsed' ? 'bg-yellow-100 text-yellow-800 dark:bg-[#FFD100]/20 dark:text-[#FFD100]' :
-                                'bg-gray-100 text-gray-700 dark:bg-slate-700 dark:text-gray-300'
+                                problem._displayStatus === 'needs_review' || problem._displayStatus === 'Needs Review'
+                                  ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                                  : problem._displayStatus === 'Endorsed' || problem._displayStatus === 'endorsed'
+                                  ? 'bg-yellow-100 text-yellow-800 dark:bg-[#FFD100]/20 dark:text-[#FFD100]'
+                                  : 'bg-gray-100 text-gray-700 dark:bg-slate-700 dark:text-gray-300'
                               }`}>
-                                {problem._displayStatus === 'needs_review' ? 'Needs Review' :
-                                problem._displayStatus === 'endorsed' ? 'Endorsed' :
-                                problem.stage}
+                                {problem._displayStatus === 'needs_review' || problem._displayStatus === 'Needs Review'
+                                  ? 'Needs Review'
+                                  : problem._displayStatus === 'Endorsed' || problem._displayStatus === 'endorsed'
+                                  ? 'Endorsed'
+                                  : problem.stage}
                               </span>
                             </td>
                             <td className="px-4 py-3">

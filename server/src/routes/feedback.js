@@ -50,16 +50,28 @@ router.get('/next', authenticate, async (req, res) => {
 });
 
 // GET /feedback/reviewable - all problems eligible for review
+// FIX: exclude problems the current user has already reviewed (any feedback entry)
 router.get('/reviewable', authenticate, async (req, res) => {
   try {
     const { topic, stage, author, difficulty } = req.query;
+
+    // Find all problem IDs the current user has already submitted any feedback for
+    const alreadyReviewed = await prisma.feedback.findMany({
+      where: { userId: req.userId },
+      select: { problemId: true },
+    });
+    const reviewedIds = alreadyReviewed.map((f) => f.problemId);
+
     const where = {
       authorId: { not: req.userId },
+      // Exclude problems already reviewed by this user
+      ...(reviewedIds.length > 0 ? { id: { notIn: reviewedIds } } : {}),
     };
     if (topic) where.topics = { has: topic };
     if (stage) where.stage = stage;
     if (author) where.authorId = author;
     if (difficulty) where.quality = difficulty;
+
     const problems = await prisma.problem.findMany({
       where,
       include: {
@@ -182,8 +194,8 @@ router.patch('/:id', authenticate, async (req, res) => {
       include: { problem: true },
     });
     if (!fb) return res.status(404).json({ error: 'Feedback not found' });
-    const isCreator = fb.userId === req.userId;
-    const isProblemAuthor = fb.problem.authorId === req.userId;
+    const isCreator = String(fb.userId) === String(req.userId);
+    const isProblemAuthor = String(fb.problem.authorId) === String(req.userId);
     if (!isCreator && !isProblemAuthor && !isAdmin) {
       return res.status(403).json({ error: 'Not authorized to edit this feedback' });
     }
@@ -214,7 +226,7 @@ router.put('/:id/resolve', authenticate, async (req, res) => {
       include: { problem: true },
     });
     if (!fb) return res.status(404).json({ error: 'Feedback not found' });
-    const isProblemAuthor = fb.problem.authorId === req.userId;
+    const isProblemAuthor = String(fb.problem.authorId) === String(req.userId);
     if (!isProblemAuthor && !isAdmin) {
       return res.status(403).json({ error: 'Not authorized' });
     }
@@ -254,7 +266,7 @@ router.delete('/:id', authenticate, async (req, res) => {
       include: { problem: true },
     });
     if (!fb) return res.status(404).json({ error: 'Feedback not found' });
-    if (fb.userId !== req.userId && !isAdmin) {
+    if (String(fb.userId) !== String(req.userId) && !isAdmin) {
       return res.status(403).json({ error: 'Not authorized to delete this feedback' });
     }
     const problemId = fb.problemId;
