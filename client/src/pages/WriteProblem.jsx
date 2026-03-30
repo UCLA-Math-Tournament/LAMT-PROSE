@@ -212,7 +212,7 @@ const WriteProblem = () => {
                     className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-ucla-gold"
                   />
                   <div className="px-4 py-3 bg-ucla-blue/5 dark:bg-ucla-blue/20 rounded-2xl border border-ucla-blue/10">
-                    <p className="text-ucla-blue dark:text-ucla-gold font-black text-[10px] uppercase italic tracking-tighter">
+                    <p className="text-ucla-blue dark:text-ucla-darker-gold dark:text-ucla-gold font-black text-[10px] uppercase italic tracking-tighter">
                       {DIFFICULTY_LABELS[difficulty]}
                     </p>
                   </div>
@@ -262,7 +262,7 @@ const WriteProblem = () => {
             <div className="bg-slate-900 rounded-[2.5rem] p-1 shadow-2xl overflow-hidden border border-slate-800">
               <div className="p-8 space-y-8 max-h-[calc(100vh-200px)] overflow-y-auto custom-scrollbar">
                 <div className="space-y-4">
-                  <h3 className="text-ucla-blue font-black text-[10px] uppercase tracking-widest">Problem Statement</h3>
+                  <h3 className="text-ucla-blue dark:text-ucla-lighter-blue font-black text-[10px] uppercase tracking-widest">Problem Statement</h3>
                   <div className="text-slate-200 leading-relaxed text-sm bg-slate-800/30 p-6 rounded-3xl border border-slate-700/50 min-h-[120px]">
                     {latex ? <KatexRenderer latex={latex} /> : <span className="text-slate-600 italic">Waiting for input...</span>}
                     <div className="grid grid-cols-2 gap-4 mt-4">
@@ -274,8 +274,8 @@ const WriteProblem = () => {
                 </div>
 
                 <div className="space-y-4">
-                  <h3 className="text-ucla-gold font-black text-[10px] uppercase tracking-widest">Solution Flow</h3>
-                  <div className="text-slate-300 leading-relaxed text-sm bg-slate-800/30 p-6 rounded-3xl border border-slate-700/50 min-h-[120px]">
+                  <h3 className="text-ucla-darker-gold dark:text-ucla-gold font-black text-[10px] uppercase tracking-widest">Solution Flow</h3>
+                  <div className="text-gray-900 dark:text-slate-300 leading-relaxed text-sm bg-gray-50 dark:bg-[#003558]/30 p-6 rounded-3xl border border-slate-700/50 min-h-[120px]">
                     {solution ? <KatexRenderer latex={solution} /> : <span className="text-slate-600 italic">No solution yet...</span>}
                     <div className="grid grid-cols-2 gap-4 mt-4">
                       {images.filter(img => img.destination === 'solution').map((img, i) => (
