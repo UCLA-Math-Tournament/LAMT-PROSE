@@ -25,21 +25,18 @@ function computeDisplayStatus(problem) {
   return problem.stage || 'Idea';
 }
 
-// Atomically assign the next available problem ID
+// Atomically assign the next available problem ID (always max+1, never recycles gaps)
 async function assignProblemId(userInitials) {
   return await prisma.$transaction(async (tx) => {
     const existing = await tx.problem.findMany({
       select: { id: true },
       where: { id: { startsWith: userInitials } },
     });
-    const usedNums = new Set(
-      existing
-        .map((p) => parseInt(p.id.slice(userInitials.length)))
-        .filter((n) => !isNaN(n))
-    );
-    let num = 1;
-    while (usedNums.has(num)) num++;
-    const newId = `${userInitials}${String(num).padStart(4, '0')}`;
+    const nums = existing
+      .map((p) => parseInt(p.id.slice(userInitials.length)))
+      .filter((n) => !isNaN(n));
+    const maxNum = nums.length > 0 ? Math.max(...nums) : 0;
+    const newId = `${userInitials}${String(maxNum + 1).padStart(4, '0')}`;
     return newId;
   });
 }
