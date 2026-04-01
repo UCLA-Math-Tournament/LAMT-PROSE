@@ -25,18 +25,22 @@ function computeDisplayStatus(problem) {
   return problem.stage || 'Idea';
 }
 
-// Atomically assign the next available problem ID (always max+1, never recycles gaps)
+// Atomically assign the next problem ID using a GLOBAL counter.
+// The 4-digit number is the next integer after the highest number
+// across ALL problems in the system (not just this user's problems),
+// so IDs are globally monotonic: XX0001, YY0002, XX0003, ZZ0004...
 async function assignProblemId(userInitials) {
   return await prisma.$transaction(async (tx) => {
-    const existing = await tx.problem.findMany({
-      select: { id: true },
-      where: { id: { startsWith: userInitials } },
-    });
-    const nums = existing
-      .map((p) => parseInt(p.id.slice(userInitials.length)))
+    const allProblems = await tx.problem.findMany({ select: { id: true } });
+    const nums = allProblems
+      .map((p) => {
+        // ID format is 2-letter initials + 4-digit number
+        const match = p.id.match(/^[A-Z]+?(\d+)$/);
+        return match ? parseInt(match[1]) : NaN;
+      })
       .filter((n) => !isNaN(n));
-    const maxNum = nums.length > 0 ? Math.max(...nums) : 0;
-    const newId = `${userInitials}${String(maxNum + 1).padStart(4, '0')}`;
+    const globalMax = nums.length > 0 ? Math.max(...nums) : 0;
+    const newId = `${userInitials}${String(globalMax + 1).padStart(4, '0')}`;
     return newId;
   });
 }
@@ -108,7 +112,6 @@ router.get('/', authenticate, async (req, res) => {
     });
     const result = problems.map((p) => {
       const pData = { ...p };
-      // FIX: use String() coercion to avoid int vs string mismatch from JWT
       const isAuthor = String(p.authorId) === String(req.userId);
       if (!isAdmin) delete pData.answer;
       if (!isAdmin && !isAuthor) {
@@ -164,7 +167,6 @@ router.get('/:id', authenticate, async (req, res) => {
       },
     });
     if (!problem) return res.status(404).json({ error: 'Problem not found' });
-    // FIX: String() coercion prevents int vs string JWT mismatch
     const isAuthor = String(problem.authorId) === String(req.userId);
     const isAdmin = currentUser?.isAdmin || ADMIN_EMAILS.includes(currentUser?.email);
     const result = { ...problem };
@@ -189,7 +191,6 @@ router.put('/:id', authenticate, async (req, res) => {
     });
     const existing = await prisma.problem.findUnique({ where: { id: req.params.id } });
     if (!existing) return res.status(404).json({ error: 'Problem not found' });
-    // FIX: String() coercion
     const isAuthor = String(existing.authorId) === String(req.userId);
     const isAdmin = currentUser?.isAdmin || ADMIN_EMAILS.includes(currentUser?.email);
     if (!isAuthor && !isAdmin) {
@@ -234,7 +235,6 @@ router.delete('/:id', authenticate, async (req, res) => {
     const existing = await prisma.problem.findUnique({ where: { id: req.params.id } });
     if (!existing) return res.status(404).json({ error: 'Problem not found' });
     const isAdmin = currentUser?.isAdmin || ADMIN_EMAILS.includes(currentUser?.email);
-    // FIX: String() coercion
     if (String(existing.authorId) !== String(req.userId) && !isAdmin) {
       return res.status(403).json({ error: 'Not authorized' });
     }
