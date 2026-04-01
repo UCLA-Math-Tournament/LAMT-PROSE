@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { 
   Edit, User, Trash2, Star, ChevronDown, ChevronUp, 
   CheckCircle, Image as ImageIcon, X,
-  AlertCircle, Save, ArrowLeft 
+  AlertCircle, Save, ArrowLeft, MessageSquare 
 } from 'lucide-react';
 import api from '../utils/api';
 import { useAuth } from '../utils/AuthContext';
@@ -60,6 +60,11 @@ const ProblemDetail = () => {
   const [editingFeedbackId, setEditingFeedbackId] = useState(null);
   const [editedFeedbackComment, setEditedFeedbackComment] = useState('');
   const [editedFeedbackIsEndorsement, setEditedFeedbackIsEndorsement] = useState(false);
+
+  // Reply state
+  const [replyingId, setReplyingId] = useState(null);
+  const [replyText, setReplyText] = useState('');
+  const [savingReply, setSavingReply] = useState(false);
 
   const extractImages = (text, destination) => {
     if (!text) return { cleanText: '', extractedImages: [] };
@@ -186,7 +191,6 @@ const ProblemDetail = () => {
     try {
       const payload = { comment: editedFeedbackComment };
       const originalFb = feedbacks.find(f => f.id === fbId);
-      // Only send isEndorsement if it changed
       if (originalFb && editedFeedbackIsEndorsement !== originalFb.isEndorsement) {
         payload.isEndorsement = editedFeedbackIsEndorsement;
       }
@@ -197,6 +201,25 @@ const ProblemDetail = () => {
       fetchProblem();
     } catch (error) {
       setMessage(error?.response?.data?.error || 'Failed to update feedback');
+    }
+  };
+
+  const handleSaveReply = async (fbId) => {
+    if (!replyText.trim()) {
+      setMessage('Reply cannot be empty.');
+      return;
+    }
+    setSavingReply(true);
+    try {
+      await api.put(`/feedback/${fbId}/reply`, { reply: replyText });
+      setMessage('Reply saved.');
+      setReplyingId(null);
+      setReplyText('');
+      fetchProblem();
+    } catch (error) {
+      setMessage(error?.response?.data?.error || 'Failed to save reply');
+    } finally {
+      setSavingReply(false);
     }
   };
 
@@ -495,13 +518,12 @@ const ProblemDetail = () => {
                 <div className="space-y-4">
                   {feedbacks.map((fb) => {
                     const fbUserId = fb.user?.id || fb.userId;
-                    // isMyFeedback: match against client user.id OR server-echoed _userId
                     const isMyFeedback =
                       (myId && fbUserId && String(myId) === String(fbUserId)) ||
                       (serverUserId && fbUserId && String(serverUserId) === String(fbUserId));
-                    // Can edit if: my feedback OR admin. NOT resolved.
                     const canEditThisFeedback = !fb.resolved && (isMyFeedback || isAdmin);
                     const isEditingThis = editingFeedbackId === fb.id;
+                    const isReplyingThis = replyingId === fb.id;
 
                     const { body: fbBody, resolveComment: fbResolveNote } = parseResolutionNote(fb.feedback);
 
@@ -543,6 +565,7 @@ const ProblemDetail = () => {
                                     setEditingFeedbackId(fb.id);
                                     setEditedFeedbackComment(fbBody);
                                     setEditedFeedbackIsEndorsement(fb.isEndorsement);
+                                    setReplyingId(null);
                                   }
                                 }}
                                 className="text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-ucla-blue transition-colors"
@@ -550,10 +573,32 @@ const ProblemDetail = () => {
                                 {isEditingThis ? 'Cancel' : 'Edit'}
                               </button>
                             )}
+                            {canEdit && (
+                              <button
+                                onClick={() => {
+                                  if (isReplyingThis) {
+                                    setReplyingId(null);
+                                    setReplyText('');
+                                  } else {
+                                    setReplyingId(fb.id);
+                                    setReplyText(fb.authorReply || '');
+                                    setResolvingId(null);
+                                    setEditingFeedbackId(null);
+                                  }
+                                }}
+                                className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-ucla-blue hover:underline transition-colors"
+                              >
+                                <MessageSquare size={12} />
+                                {isReplyingThis ? 'Cancel' : fb.authorReply ? 'Edit Reply' : 'Reply'}
+                              </button>
+                            )}
                             {!fb.resolved && canEdit && (
                               <button
-                                onClick={() => setResolvingId(fb.id === resolvingId ? null : fb.id)}
-                                className="text-[10px] font-black uppercase tracking-widest text-ucla-blue hover:underline"
+                                onClick={() => {
+                                  setResolvingId(fb.id === resolvingId ? null : fb.id);
+                                  setReplyingId(null);
+                                }}
+                                className="text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-ucla-blue hover:underline transition-colors"
                               >
                                 {resolvingId === fb.id ? 'Cancel' : 'Resolve'}
                               </button>
@@ -579,7 +624,6 @@ const ProblemDetail = () => {
                               className="w-full p-3 border border-slate-200 bg-slate-50 rounded-xl text-sm focus:ring-2 focus:ring-ucla-blue outline-none"
                               rows={3}
                             />
-                            {/* Endorsement toggle — only the feedback creator can flip this */}
                             {isMyFeedback && (
                               <div className="flex items-center gap-3">
                                 <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Type</span>
@@ -616,6 +660,40 @@ const ProblemDetail = () => {
                           </div>
                         ) : (
                           <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">{fbBody}</p>
+                        )}
+
+                        {/* Existing author reply display */}
+                        {!isReplyingThis && fb.authorReply && (
+                          <div className="mt-4 ml-4 pl-4 border-l-2 border-ucla-blue/20">
+                            <p className="text-[10px] font-black text-ucla-blue uppercase tracking-widest mb-1 flex items-center gap-1">
+                              <MessageSquare size={10} /> Author Reply
+                            </p>
+                            <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{fb.authorReply}</p>
+                          </div>
+                        )}
+
+                        {/* Reply input */}
+                        {isReplyingThis && (
+                          <div className="mt-4 ml-4 pl-4 border-l-2 border-ucla-blue/30">
+                            <p className="text-[10px] font-black text-ucla-blue uppercase tracking-widest mb-2 flex items-center gap-1">
+                              <MessageSquare size={10} /> {fb.authorReply ? 'Edit Your Reply' : 'Write a Reply'}
+                            </p>
+                            <textarea
+                              value={replyText}
+                              onChange={(e) => setReplyText(e.target.value)}
+                              placeholder="Write your reply to this feedback..."
+                              className="w-full p-3 border border-slate-200 bg-slate-50 rounded-xl text-sm focus:ring-2 focus:ring-ucla-blue outline-none bg-white"
+                              rows={3}
+                              autoFocus
+                            />
+                            <button
+                              onClick={() => handleSaveReply(fb.id)}
+                              disabled={savingReply}
+                              className="mt-2 bg-ucla-blue text-white px-5 py-2 rounded-lg text-xs font-black uppercase tracking-widest hover:bg-ucla-dark-blue transition-colors disabled:opacity-50"
+                            >
+                              {savingReply ? 'Saving...' : 'Save Reply'}
+                            </button>
+                          </div>
                         )}
 
                         {fb.resolved && fbResolveNote && (

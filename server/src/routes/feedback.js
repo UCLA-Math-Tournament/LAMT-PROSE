@@ -103,6 +103,7 @@ router.get('/my-feedback', authenticate, async (req, res) => {
       resolved: f.resolved,
       isEndorsement: f.isEndorsement,
       comment: f.feedback,
+      authorReply: f.authorReply,
       answer: f.answer,
       createdAt: f.createdAt,
     }));
@@ -171,6 +172,37 @@ router.get('/problem/:problemId', authenticate, async (req, res) => {
   }
 });
 
+// PUT /feedback/:id/reply - problem author or admin adds/edits a reply
+router.put('/:id/reply', authenticate, async (req, res) => {
+  try {
+    const { reply } = req.body;
+    if (!reply || reply.trim() === '') {
+      return res.status(400).json({ error: 'Reply text is required' });
+    }
+    const currentUser = await prisma.user.findUnique({
+      where: { id: req.userId },
+      select: { isAdmin: true, email: true },
+    });
+    const isAdmin = currentUser?.isAdmin || ADMIN_EMAILS.includes(currentUser?.email);
+    const fb = await prisma.feedback.findUnique({
+      where: { id: req.params.id },
+      include: { problem: true },
+    });
+    if (!fb) return res.status(404).json({ error: 'Feedback not found' });
+    const isProblemAuthor = String(fb.problem.authorId) === String(req.userId);
+    if (!isProblemAuthor && !isAdmin) {
+      return res.status(403).json({ error: 'Not authorized to reply to this feedback' });
+    }
+    const updated = await prisma.feedback.update({
+      where: { id: req.params.id },
+      data: { authorReply: reply.trim() },
+    });
+    return res.json(updated);
+  } catch (error) {
+    return res.status(500).json({ error: 'Failed to save reply' });
+  }
+});
+
 // PATCH /feedback/:id - edit feedback (creator or admin only; NOT problem author)
 // Supports: comment text edit, isEndorsement toggle (endorsement <-> review)
 // Cannot edit resolved feedback.
@@ -208,10 +240,8 @@ router.patch('/:id', authenticate, async (req, res) => {
 
       if (isEndorsement) {
         // switching from review -> endorsement
-        // increment endorsements, decrement solveCount
         const newEndorsements = (problem.endorsements || 0) + 1;
         const newSolveCount = Math.max(0, (problem.solveCount || 1) - 1);
-        // Check remaining unresolved non-endorsement feedbacks after this change
         const remainingReviews = await prisma.feedback.count({
           where: { problemId, resolved: false, isEndorsement: false, id: { not: fb.id } },
         });
@@ -224,7 +254,6 @@ router.patch('/:id', authenticate, async (req, res) => {
         // switching from endorsement -> review
         const newEndorsements = Math.max(0, (problem.endorsements || 1) - 1);
         const newSolveCount = (problem.solveCount || 0) + 1;
-        // Now there's a new unresolved review, so stage = Needs Review
         await prisma.problem.update({
           where: { id: problemId },
           data: { endorsements: newEndorsements, solveCount: newSolveCount, stage: 'Needs Review' },
@@ -282,8 +311,6 @@ router.put('/:id/resolve', authenticate, async (req, res) => {
 });
 
 // DELETE /feedback/:id
-// Deletes the feedback row — the problem automatically re-enters the reviewer's
-// available pool since pool eligibility is computed as "no existing feedback row".
 router.delete('/:id', authenticate, async (req, res) => {
   try {
     const currentUser = await prisma.user.findUnique({
@@ -302,7 +329,6 @@ router.delete('/:id', authenticate, async (req, res) => {
     const problemId = fb.problemId;
     const problem = fb.problem;
     await prisma.feedback.delete({ where: { id: req.params.id } });
-    // Recompute problem counters and stage after deletion
     const updateData = {};
     if (fb.isEndorsement) {
       const newEndorsements = Math.max(0, problem.endorsements - 1);
@@ -319,7 +345,6 @@ router.delete('/:id', authenticate, async (req, res) => {
       if (remainingUnresolved === 0) {
         updateData.stage = (problem.endorsements || 0) > 0 ? 'Endorsed' : 'Idea';
       }
-      // else keep Needs Review
     }
     await prisma.problem.update({ where: { id: problemId }, data: updateData });
     return res.json({ message: 'Feedback successfully removed' });
