@@ -10,11 +10,9 @@ const classifyProblem = (problem) => {
   const pendingNeedsReview = feedbacks.some(
     (fb) => (!fb.isEndorsement && !fb.resolved)
   );
-  // Needs Review: has pending unresolved feedback (-2 pts)
   if (pendingNeedsReview) {
     return { category: 'needsReview', points: -2 };
   }
-  // Stage-based classification
   const stage = problem.stage || 'Idea';
   if ((problem.endorsements || 0) >= 1 || stage === 'Endorsed') return { category: 'endorsed', points: 5 };
   return { category: 'idea', points: 3 };
@@ -49,14 +47,17 @@ router.get('/leaderboard', authenticate, async (req, res) => {
         score += points;
         badges[category] = (badges[category] || 0) + 1;
       });
+      // +0.25 pts per feedback given
+      const reviewsGiven = user.feedbacks.length;
+      score += reviewsGiven * 0.25;
       return {
         userId: user.id,
         author: `${user.firstName} ${user.lastName}`,
         initials: user.initials,
         badges,
-        score,
+        score: Math.round(score * 100) / 100,
         totalProblems: user.problems.length,
-        reviewsGiven: user.feedbacks.length,
+        reviewsGiven,
       };
     });
     leaderboard.sort((a, b) => b.score - a.score);
@@ -123,7 +124,6 @@ router.get('/tournament-progress', authenticate, async (req, res) => {
       if (category === 'needsReview') progressByDate[date].needsReview++;
       else if (category === 'endorsed') progressByDate[date].endorsed++;
       else progressByDate[date].idea++;
-      // Track topics
       (p.topics || []).forEach((t) => {
         if (progressByDate[date][t] !== undefined) progressByDate[date][t]++;
       });
