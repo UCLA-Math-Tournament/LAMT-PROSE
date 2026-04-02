@@ -43,10 +43,13 @@ router.get('/leaderboard', authenticate, async (req, res) => {
       const badges = { endorsed: 0, idea: 0, needsReview: 0 };
       let score = 0;
       user.problems.forEach((p) => {
+        // Skip archived problems from scoring
+        if (p.stage === 'Archived') return;
         const { category, points } = classifyProblem(p);
         score += points;
         badges[category] = (badges[category] || 0) + 1;
       });
+
       // +0.25 pts per feedback given
       const reviewsGiven = user.feedbacks.length;
       score += reviewsGiven * 0.25;
@@ -79,6 +82,7 @@ router.get('/dashboard', authenticate, async (req, res) => {
     const stageCounts = { Idea: 0, 'Needs Review': 0, Endorsed: 0 };
     let totalEndorsements = 0;
     problems.forEach((p) => {
+      if (p.stage === 'Archived') return;
       p.topics.forEach((t) => {
         topicCounts[t] = (topicCounts[t] || 0) + 1;
       });
@@ -89,7 +93,7 @@ router.get('/dashboard', authenticate, async (req, res) => {
       totalEndorsements += p.endorsements || 0;
     });
     res.json({
-      totalProblems: problems.length,
+      totalProblems: problems.filter(p => p.stage !== 'Archived').length,
       totalEndorsements,
       topicCounts,
       stageCounts,
@@ -114,10 +118,10 @@ router.get('/tournament-progress', authenticate, async (req, res) => {
     });
     const progressByDate = {};
     problems.forEach((p) => {
+      if (p.stage === 'Archived') return;
       const date = new Date(p.createdAt).toISOString().split('T')[0];
       if (!progressByDate[date]) {
-        progressByDate[date] = { date, idea: 0, endorsed: 0, needsReview: 0, count: 0,
-          Algebra: 0, Geometry: 0, Combinatorics: 0, 'Number Theory': 0 };
+        progressByDate[date] = { date, idea: 0, endorsed: 0, needsReview: 0, count: 0, Algebra: 0, Geometry: 0, Combinatorics: 0, 'Number Theory': 0 };
       }
       const { category } = classifyProblem(p);
       progressByDate[date].count++;
@@ -130,8 +134,7 @@ router.get('/tournament-progress', authenticate, async (req, res) => {
     });
     const dates = Object.keys(progressByDate).sort();
     const cumulative = [];
-    let totals = { idea: 0, endorsed: 0, needsReview: 0, count: 0,
-      Algebra: 0, Geometry: 0, Combinatorics: 0, 'Number Theory': 0 };
+    let totals = { idea: 0, endorsed: 0, needsReview: 0, count: 0, Algebra: 0, Geometry: 0, Combinatorics: 0, 'Number Theory': 0 };
     dates.forEach((date) => {
       totals.idea += progressByDate[date].idea;
       totals.endorsed += progressByDate[date].endorsed;
@@ -141,17 +144,7 @@ router.get('/tournament-progress', authenticate, async (req, res) => {
       totals.Geometry += progressByDate[date].Geometry;
       totals.Combinatorics += progressByDate[date].Combinatorics;
       totals['Number Theory'] += progressByDate[date]['Number Theory'];
-      cumulative.push({
-        date,
-        idea: totals.idea,
-        endorsed: totals.endorsed,
-        needsReview: totals.needsReview,
-        count: totals.count,
-        Algebra: totals.Algebra,
-        Geometry: totals.Geometry,
-        Combinatorics: totals.Combinatorics,
-        'Number Theory': totals['Number Theory'],
-      });
+      cumulative.push({ date, idea: totals.idea, endorsed: totals.endorsed, needsReview: totals.needsReview, count: totals.count, Algebra: totals.Algebra, Geometry: totals.Geometry, Combinatorics: totals.Combinatorics, 'Number Theory': totals['Number Theory'] });
     });
     res.json(cumulative);
   } catch (error) {

@@ -155,6 +155,67 @@ const Leaderboard = () => {
               </div>
             )}
           </div>
+
+          {filtered.map((entry, index) => (
+            <div
+              key={entry.userId}
+              onClick={() => navigate(`/users/${entry.userId}`)}
+              className="grid grid-cols-12 gap-2 items-center px-5 py-4 border-b border-slate-100 dark:border-slate-800 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-800/40 cursor-pointer transition-colors"
+            >
+              {/* Rank */}
+              <div className="col-span-1">
+                {index === 0 ? (
+                  <span className="text-lg">🥇</span>
+                ) : index === 1 ? (
+                  <span className="text-lg">🥈</span>
+                ) : index === 2 ? (
+                  <span className="text-lg">🥉</span>
+                ) : (
+                  <span className="text-sm font-semibold text-slate-400 tabular-nums">{index + 1}</span>
+                )}
+              </div>
+
+              {/* Author */}
+              <div className="col-span-4">
+                <p className="font-semibold text-slate-900 dark:text-white text-sm">{entry.author}</p>
+                <p className="text-xs text-slate-400 font-mono">{entry.initials}</p>
+              </div>
+
+              {/* Endorsed badge count */}
+              <div className="col-span-2 text-center">
+                <span className="text-sm font-semibold text-slate-700 dark:text-slate-300 tabular-nums">{entry.badges.endorsed || 0}</span>
+              </div>
+
+              {/* Idea badge count */}
+              <div className="col-span-2 text-center">
+                <span className="text-sm font-semibold text-slate-700 dark:text-slate-300 tabular-nums">{entry.badges.idea || 0}</span>
+              </div>
+
+              {/* Reviews given */}
+              <div className="col-span-1 text-center">
+                <span className="text-sm font-semibold text-slate-700 dark:text-slate-300 tabular-nums">{entry.reviewsGiven || 0}</span>
+              </div>
+
+              {/* Score */}
+              <div className="col-span-2 text-right">
+                <span className="text-lg font-bold text-ucla-blue dark:text-ucla-gold tabular-nums">{entry.score}</span>
+              </div>
+            </div>
+          ))}
+
+          {filtered.length === 0 && (
+            <div className="text-center py-16 text-slate-400 text-sm">
+              No contributors found matching &ldquo;{search}&rdquo;
+            </div>
+          )}
+        </div>
+
+        {/* Scoring legend */}
+        <div className="flex flex-wrap gap-3 text-xs text-slate-500 dark:text-slate-400">
+          <span className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-full">Endorsed problem: <strong className="text-green-600">+5 pts</strong></span>
+          <span className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-full">Idea stage: <strong className="text-blue-600">+3 pts</strong></span>
+          <span className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-full">Needs Review: <strong className="text-red-500">-2 pts</strong></span>
+          <span className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-full">Review given: <strong className="text-purple-600">+0.25 pts</strong></span>
         </div>
       </div>
     </Layout>
