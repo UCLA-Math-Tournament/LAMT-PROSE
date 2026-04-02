@@ -25,6 +25,26 @@ function parseSegments(content) {
   return segments;
 }
 
+function renderTextSegment(value) {
+  const imgRegex = /!\[(.*?)\]\((data:image\/[^)]+)\)/g;
+  const parts = [];
+  let last = 0;
+  let m;
+  while ((m = imgRegex.exec(value)) !== null) {
+    parts.push(
+      value.slice(last, m.index)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br/>')
+    );
+    parts.push(`<img src="${m[2]}" alt="${m[1]}" style="max-width:100%;border-radius:8px;margin:8px 0;display:block;" />`);
+    last = imgRegex.lastIndex;
+  }
+  parts.push(
+    value.slice(last)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br/>')
+  );
+  return parts.join('');
+}
+
 const KatexRenderer = ({ latex, displayMode = false }) => {
   const html = useMemo(() => {
     if (!latex) return '';
@@ -40,11 +60,7 @@ const KatexRenderer = ({ latex, displayMode = false }) => {
     const segments = parseSegments(latex);
     return segments.map(seg => {
       if (seg.type === 'text') {
-        return seg.value
-          .replace(/&/g, '&amp;')
-          .replace(/</g, '&lt;')
-          .replace(/>/g, '&gt;')
-          .replace(/\n/g, '<br/>');
+        return renderTextSegment(seg.value);
       }
       try {
         return katex.renderToString(seg.value, {
